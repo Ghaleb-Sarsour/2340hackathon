@@ -90,7 +90,7 @@ export default function DomainClassDiagramPage() {
           description: "System operations in SSD become methods in controller classes of the DCD.",
         },
       ]}
-      diagram={<DomainClassDiagram />}
+      renderDiagram={(currentStep) => <DomainClassDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "Domain Model", href: "/diagrams/domain-model" }}
       nextDiagram={{ name: "Use Case Diagram", href: "/diagrams/use-case" }}
     />

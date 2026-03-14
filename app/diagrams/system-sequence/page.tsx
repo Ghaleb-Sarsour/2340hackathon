@@ -90,7 +90,7 @@ export default function SystemSequenceDiagramPage() {
           description: "System operations in SSD become controller methods in the DCD.",
         },
       ]}
-      diagram={<SystemSequenceDiagram />}
+      renderDiagram={(currentStep) => <SystemSequenceDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "Sequence Diagram", href: "/diagrams/sequence" }}
       nextDiagram={{ name: "Domain Model", href: "/diagrams/domain-model" }}
     />

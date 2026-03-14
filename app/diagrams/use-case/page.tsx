@@ -90,7 +90,7 @@ export default function UseCaseDiagramPage() {
           description: "Use case descriptions help identify domain concepts for the domain model.",
         },
       ]}
-      diagram={<UseCaseDiagram />}
+      renderDiagram={(currentStep) => <UseCaseDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "Domain Class Diagram", href: "/diagrams/domain-class" }}
     />
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp, Play, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ interface DiagramLayoutProps {
   purpose: React.ReactNode;
   process: { step: number; title: string; description: string }[];
   connections: { name: string; abbr: string; href: string; description: string }[];
-  diagram: React.ReactElement<{ currentStep?: number | null }>;
+  renderDiagram: (currentStep: number | null) => React.ReactNode;
   prevDiagram?: { name: string; href: string };
   nextDiagram?: { name: string; href: string };
 }
@@ -24,7 +24,7 @@ export function DiagramLayout({
   purpose,
   process,
   connections,
-  diagram,
+  renderDiagram,
   prevDiagram,
   nextDiagram,
 }: DiagramLayoutProps) {
@@ -291,8 +291,8 @@ export function DiagramLayout({
                 )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 overflow-auto">
-                {/* Clone the diagram element and pass currentStep prop */}
-                {React.cloneElement(diagram, { currentStep })}
+                {/* Render diagram with currentStep */}
+                {renderDiagram(currentStep)}
               </div>
             </div>
           </div>

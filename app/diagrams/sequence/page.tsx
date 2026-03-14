@@ -91,7 +91,7 @@ export default function SequenceDiagramPage() {
           description: "Each SD typically corresponds to one use case or scenario from the UCD.",
         },
       ]}
-      diagram={<SequenceDiagram />}
+      renderDiagram={(currentStep) => <SequenceDiagram currentStep={currentStep} />}
       nextDiagram={{ name: "System Sequence Diagram", href: "/diagrams/system-sequence" }}
     />
   );

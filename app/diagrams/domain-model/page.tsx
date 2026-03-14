@@ -90,7 +90,7 @@ export default function DomainModelPage() {
           description: "Domain model entities become objects that interact in sequence diagrams.",
         },
       ]}
-      diagram={<DomainModelDiagram />}
+      renderDiagram={(currentStep) => <DomainModelDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "System Sequence Diagram", href: "/diagrams/system-sequence" }}
       nextDiagram={{ name: "Domain Class Diagram", href: "/diagrams/domain-class" }}
     />
