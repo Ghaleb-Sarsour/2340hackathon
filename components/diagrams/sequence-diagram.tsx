@@ -95,7 +95,7 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
           className="w-full min-w-[700px] h-auto"
           style={{ minHeight: "550px" }}
         >
-          <rect width="900" height="680" fill="#131318" rx="8" />
+          <rect width="900" height="680" fill="#000000" rx="8" />
 
           <text x="450" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             Sequence Diagram: Event Creation and RSVP (Scenario 2)
@@ -119,7 +119,7 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
                   width={boxWidth}
                   height="36"
                   rx="4"
-                  fill={isNew ? lifeline.color : "#1e1e26"}
+                  fill={isNew ? lifeline.color : "#0a0a0a"}
                   fillOpacity={isNew ? 0.3 : 1}
                   stroke={lifeline.color}
                   strokeWidth={isNew ? 3 : 2}
@@ -217,7 +217,7 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
             />
             <rect 
               x="35" y="420" width="60" height="20" 
-              fill="#27272a" 
+              fill="#111111" 
               stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
               strokeWidth={isNewlyAdded("fragment") ? 2 : 1.5} 
             />

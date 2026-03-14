@@ -92,7 +92,7 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
           className="w-full min-w-[600px] h-auto"
           style={{ minHeight: "420px" }}
         >
-          <rect width="750" height="520" fill="#131318" rx="8" />
+          <rect width="750" height="520" fill="#000000" rx="8" />
 
           <text x="375" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             Domain Class Diagram: CampusConnect (Scenario 2)
@@ -156,7 +156,7 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
                   width={cls.width}
                   height={totalHeight}
                   rx="4"
-                  fill={isNew ? cls.color : "#1e1e26"}
+                  fill={isNew ? cls.color : "#0a0a0a"}
                   fillOpacity={isNew ? 0.2 : 1}
                   stroke={cls.color}
                   strokeWidth={isNew ? 3 : 2}

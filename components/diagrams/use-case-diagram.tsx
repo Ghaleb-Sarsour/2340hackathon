@@ -107,7 +107,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
           className="w-full min-w-[600px] h-auto"
           style={{ minHeight: "460px" }}
         >
-          <rect width="800" height="580" fill="#131318" rx="8" />
+          <rect width="800" height="580" fill="#000000" rx="8" />
 
           <text x="400" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             Use Case Diagram: CampusConnect
@@ -185,7 +185,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                     width="80"
                     height="40"
                     rx="4"
-                    fill={isNew ? actor.color : "#1e1e26"}
+                    fill={isNew ? actor.color : "#0a0a0a"}
                     fillOpacity={isNew ? 0.3 : 1}
                     stroke={actor.color}
                     strokeWidth={isNew ? 3 : 2}
@@ -238,7 +238,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                   cy={useCase.y}
                   rx={useCase.rx}
                   ry="22"
-                  fill={isNew ? color : "#1e1e26"}
+                  fill={isNew ? color : "#0a0a0a"}
                   fillOpacity={isNew ? 0.2 : 1}
                   stroke={color}
                   strokeWidth={isNew ? 3 : 1.5}
@@ -259,7 +259,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
           <g transform="translate(200, 530)">
             <circle cx="6" cy="6" r="5" fill="none" stroke="#22d3ee" strokeWidth="1.5" />
             <text x="18" y="10" className="fill-muted-foreground text-xs">Actor</text>
-            <ellipse cx="90" cy="6" rx="18" ry="8" fill="#1e1e26" stroke="#71717a" strokeWidth="1" />
+            <ellipse cx="90" cy="6" rx="18" ry="8" fill="#0a0a0a" stroke="#71717a" strokeWidth="1" />
             <text x="118" y="10" className="fill-muted-foreground text-xs">Use Case</text>
             <circle cx="195" cy="6" r="4" fill="#22d3ee" />
             <text x="205" y="10" className="fill-muted-foreground text-xs">Scenario 1</text>

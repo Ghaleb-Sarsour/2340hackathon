@@ -67,7 +67,7 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
           className="w-full min-w-[500px] h-auto"
           style={{ minHeight: "450px" }}
         >
-          <rect width="650" height="560" fill="#131318" rx="8" />
+          <rect width="650" height="560" fill="#000000" rx="8" />
 
           <text x="325" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             System Sequence Diagram: View Organizations & Events (Scenario 3)
@@ -100,7 +100,7 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
           >
             <rect 
               x="450" y="60" width="130" height="45" rx="4" 
-              fill={isNewlyAdded("system") ? "#22d3ee" : "#1e1e26"}
+              fill={isNewlyAdded("system") ? "#22d3ee" : "#0a0a0a"}
               fillOpacity={isNewlyAdded("system") ? 0.2 : 1}
               stroke="#22d3ee" 
               strokeWidth={isNewlyAdded("system") ? 3 : 2}
@@ -173,7 +173,7 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
           <g transform="translate(50, 520)">
             <circle cx="6" cy="6" r="5" fill="none" stroke="#3b82f6" strokeWidth="1.5" />
             <text x="18" y="10" className="fill-muted-foreground text-xs">Actor</text>
-            <rect x="80" y="1" width="12" height="12" fill="#1e1e26" stroke="#22d3ee" strokeWidth="1" rx="2" />
+            <rect x="80" y="1" width="12" height="12" fill="#0a0a0a" stroke="#22d3ee" strokeWidth="1" rx="2" />
             <text x="98" y="10" className="fill-muted-foreground text-xs">System</text>
             <line x1="160" y1="6" x2="190" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
             <text x="198" y="10" className="fill-muted-foreground text-xs">System Event</text>

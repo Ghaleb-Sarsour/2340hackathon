@@ -82,7 +82,7 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
           className="w-full min-w-[600px] h-auto"
           style={{ minHeight: "400px" }}
         >
-          <rect width="780" height="480" fill="#131318" rx="8" />
+          <rect width="780" height="480" fill="#000000" rx="8" />
 
           <text x="390" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             Domain Model: CampusConnect
@@ -155,7 +155,7 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
                   width={concept.width}
                   height={totalHeight}
                   rx="4"
-                  fill={isNew ? concept.color : "#1e1e26"}
+                  fill={isNew ? concept.color : "#0a0a0a"}
                   fillOpacity={isNew ? 0.2 : 1}
                   stroke={concept.color}
                   strokeWidth={isNew ? 3 : 2}
