@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useEffect, useState } from "react";
+
 interface DomainModelDiagramProps {
   currentStep?: number | null;
 }
@@ -44,29 +46,55 @@ const associations: Association[] = [
 
 // Map building process steps
 const stepVisibility = {
-  1: { concepts: [], associations: [] }, // Identify nouns
-  2: { concepts: ["student", "organization", "event"], associations: [] }, // Core concepts
-  3: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: [] }, // All concepts
-  4: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event"] }, // Core associations
-  5: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] }, // All associations
-  6: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] }, // Validate & refine
+  1: { concepts: [], associations: [] },
+  2: { concepts: ["student", "organization", "event"], associations: [] },
+  3: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: [] },
+  4: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event"] },
+  5: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] },
+  6: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] },
 };
 
 export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
   const step = currentStep as keyof typeof stepVisibility | null;
   const visibility = step ? stepVisibility[step] : null;
   const showAll = visibility === null;
+  const prevStepRef = useRef<number | null>(null);
+  const [animatingElements, setAnimatingElements] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (step === null) {
+      setAnimatingElements(new Set());
+      prevStepRef.current = null;
+      return;
+    }
+
+    const prevStep = prevStepRef.current;
+    const newAnimating = new Set<string>();
+
+    if (prevStep === null || step > prevStep) {
+      const current = stepVisibility[step];
+      const prev = prevStep ? stepVisibility[prevStep as keyof typeof stepVisibility] : { concepts: [], associations: [] };
+
+      current.concepts.forEach(id => {
+        if (!prev.concepts.includes(id)) newAnimating.add(`concept-${id}`);
+      });
+      current.associations.forEach(id => {
+        if (!prev.associations.includes(id)) newAnimating.add(`assoc-${id}`);
+      });
+    }
+
+    setAnimatingElements(newAnimating);
+    prevStepRef.current = step;
+
+    if (newAnimating.size > 0) {
+      const timer = setTimeout(() => setAnimatingElements(new Set()), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
 
   const isConceptVisible = (id: string) => showAll || (visibility?.concepts.includes(id) ?? false);
   const isAssociationVisible = (id: string) => showAll || (visibility?.associations.includes(id) ?? false);
-
-  const isNewlyAdded = (type: "concept" | "association", id: string) => {
-    if (!step || step === 1) return false;
-    const prevStep = (step - 1) as keyof typeof stepVisibility;
-    const prev = stepVisibility[prevStep];
-    if (type === "concept") return !prev.concepts.includes(id) && visibility?.concepts.includes(id);
-    return !prev.associations.includes(id) && visibility?.associations.includes(id);
-  };
+  const isAnimating = (key: string) => animatingElements.has(key);
 
   const getConceptCenter = (id: string) => {
     const c = concepts.find(c => c.id === id)!;
@@ -76,6 +104,21 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
 
   return (
     <div className="w-full">
+      <style jsx>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes drawLine {
+          from { stroke-dashoffset: 500; opacity: 0; }
+          to { stroke-dashoffset: 0; opacity: 1; }
+        }
+        .animate-fade-slide { animation: fadeSlideIn 0.5s ease-out forwards; }
+        .animate-draw-line { 
+          stroke-dasharray: 500; 
+          animation: drawLine 0.6s ease-out forwards; 
+        }
+      `}</style>
       <div className="w-full overflow-x-auto">
         <svg
           viewBox="0 0 780 480"
@@ -93,29 +136,31 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
             const from = getConceptCenter(assoc.from);
             const to = getConceptCenter(assoc.to);
             const visible = isAssociationVisible(assoc.id);
-            const isNew = isNewlyAdded("association", assoc.id);
+            const animating = isAnimating(`assoc-${assoc.id}`);
             const midX = (from.x + to.x) / 2;
             const midY = (from.y + to.y) / 2;
+
+            if (!visible) return null;
 
             return (
               <g
                 key={assoc.id}
-                opacity={visible ? 1 : 0.08}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                className={animating ? "animate-draw-line" : ""}
+                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
               >
                 <line
                   x1={from.x}
                   y1={from.y}
                   x2={to.x}
                   y2={to.y}
-                  stroke={isNew ? "#22d3ee" : "#71717a"}
-                  strokeWidth={isNew ? 2.5 : 1.5}
+                  stroke={animating ? "#22d3ee" : "#71717a"}
+                  strokeWidth={animating ? 2.5 : 1.5}
                 />
                 <text
                   x={midX}
                   y={midY - 6}
                   textAnchor="middle"
-                  className={`text-xs ${isNew ? "fill-accent font-medium" : "fill-muted-foreground"}`}
+                  className={`text-xs ${animating ? "fill-accent font-medium" : "fill-muted-foreground"}`}
                 >
                   {assoc.label}
                 </text>
@@ -140,25 +185,27 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
           {/* Concepts */}
           {concepts.map((concept) => {
             const visible = isConceptVisible(concept.id);
-            const isNew = isNewlyAdded("concept", concept.id);
+            const animating = isAnimating(`concept-${concept.id}`);
             const attrHeight = concept.attributes.length * 14 + 8;
             const totalHeight = 28 + attrHeight;
+
+            if (!visible) return null;
 
             return (
               <g
                 key={concept.id}
                 transform={`translate(${concept.x}, ${concept.y})`}
-                opacity={visible ? 1 : 0.08}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                className={animating ? "animate-fade-slide" : ""}
+                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
               >
                 <rect
                   width={concept.width}
                   height={totalHeight}
                   rx="4"
-                  fill={isNew ? concept.color : "#1e1e26"}
-                  fillOpacity={isNew ? 0.2 : 1}
+                  fill={animating ? concept.color : "#1e1e26"}
+                  fillOpacity={animating ? 0.2 : 1}
                   stroke={concept.color}
-                  strokeWidth={isNew ? 3 : 2}
+                  strokeWidth={animating ? 3 : 2}
                 />
                 {/* Header */}
                 <rect width={concept.width} height="26" rx="4" fill={concept.color} fillOpacity="0.2" />
