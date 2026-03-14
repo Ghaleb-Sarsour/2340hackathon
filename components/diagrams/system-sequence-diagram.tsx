@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 interface SystemSequenceDiagramProps {
   currentStep?: number | null;
 }
@@ -21,12 +23,12 @@ const messages: SystemMessage[] = [
 
 // Map building process steps to visibility
 const stepVisibility = {
-  1: { actor: false, system: false, messages: [] }, // Identify scenario
-  2: { actor: true, system: false, messages: [] }, // Identify actor
-  3: { actor: true, system: true, messages: [] }, // Draw actor and system
-  4: { actor: true, system: true, messages: [1, 2, 3, 4, 5] }, // Add system events
-  5: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: true }, // Add responses
-  6: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: true, showFragments: true }, // Add fragments
+  1: { actor: false, system: false, messages: [], showResponses: false },
+  2: { actor: true, system: false, messages: [], showResponses: false },
+  3: { actor: true, system: true, messages: [], showResponses: false },
+  4: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: false },
+  5: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: true },
+  6: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: true },
 };
 
 export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProps) {
@@ -34,33 +36,97 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
   const visibility = step ? stepVisibility[step] : null;
   const showAll = visibility === null;
 
-  const showActor = showAll || (visibility?.actor ?? false);
-  const showSystem = showAll || (visibility?.system ?? false);
-  const showResponses = showAll || ((visibility as { showResponses?: boolean })?.showResponses ?? false);
+  // Track visible elements with staggered animation
+  const [showActor, setShowActor] = useState(false);
+  const [showSystem, setShowSystem] = useState(false);
+  const [visibleMessages, setVisibleMessages] = useState<number[]>([]);
+  const [visibleResponses, setVisibleResponses] = useState<number[]>([]);
 
-  const isMessageVisible = (id: number) => {
-    if (showAll) return true;
-    return visibility?.messages.includes(id) ?? false;
-  };
+  useEffect(() => {
+    if (showAll) {
+      // Show all immediately
+      setShowActor(true);
+      setShowSystem(true);
+      setVisibleMessages(messages.map(m => m.id));
+      setVisibleResponses(messages.map(m => m.id));
+      return;
+    }
 
-  const isNewlyAdded = (type: "actor" | "system" | "message" | "response", id?: number) => {
-    if (!step || step === 1) return false;
-    const prevStep = (step - 1) as keyof typeof stepVisibility;
-    const prevVisibility = stepVisibility[prevStep];
-    
-    if (type === "actor") return !prevVisibility.actor && visibility?.actor;
-    if (type === "system") return !prevVisibility.system && visibility?.system;
-    if (type === "message" && id) {
-      return !prevVisibility.messages.includes(id) && visibility?.messages.includes(id);
+    if (!visibility) {
+      setShowActor(false);
+      setShowSystem(false);
+      setVisibleMessages([]);
+      setVisibleResponses([]);
+      return;
     }
-    if (type === "response") {
-      return !(prevVisibility as { showResponses?: boolean }).showResponses && (visibility as { showResponses?: boolean })?.showResponses;
+
+    // Reset
+    setShowActor(false);
+    setShowSystem(false);
+    setVisibleMessages([]);
+    setVisibleResponses([]);
+
+    // Animate actor
+    if (visibility.actor) {
+      setTimeout(() => setShowActor(true), 100);
     }
-    return false;
-  };
+
+    // Animate system after actor
+    if (visibility.system) {
+      setTimeout(() => setShowSystem(true), 300);
+    }
+
+    // Stagger messages
+    const messageDelay = 500;
+    visibility.messages.forEach((id, index) => {
+      setTimeout(() => {
+        setVisibleMessages(prev => [...prev, id]);
+      }, messageDelay + index * 150);
+    });
+
+    // Stagger responses after messages
+    if (visibility.showResponses) {
+      const responseDelay = messageDelay + visibility.messages.length * 150 + 200;
+      visibility.messages.forEach((id, index) => {
+        setTimeout(() => {
+          setVisibleResponses(prev => [...prev, id]);
+        }, responseDelay + index * 100);
+      });
+    }
+  }, [step, showAll, visibility]);
+
+  const isMessageVisible = (id: number) => visibleMessages.includes(id);
+  const isResponseVisible = (id: number) => visibleResponses.includes(id);
 
   return (
     <div className="w-full">
+      <style jsx>{`
+        @keyframes fadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes drawLine {
+          from {
+            stroke-dashoffset: 500;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+        .animate-fade-in {
+          animation: fadeSlideIn 0.4s ease-out forwards;
+        }
+        .animate-draw {
+          stroke-dasharray: 500;
+          animation: drawLine 0.6s ease-out forwards;
+        }
+      `}</style>
       <div className="w-full overflow-x-auto">
         <svg
           viewBox="0 0 650 560"
@@ -75,15 +141,14 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
 
           {/* Actor - Priya */}
           <g
-            opacity={showActor ? 1 : 0.1}
-            className={isNewlyAdded("actor") ? "animate-pulse" : "transition-opacity duration-500"}
+            style={{ opacity: showActor ? 1 : 0.08 }}
+            className={showActor ? "animate-fade-in" : ""}
           >
             <circle 
               cx="100" cy="70" r="15" 
-              fill={isNewlyAdded("actor") ? "#3b82f6" : "none"}
-              fillOpacity={isNewlyAdded("actor") ? 0.3 : 0}
+              fill="none"
               stroke="#3b82f6" 
-              strokeWidth={isNewlyAdded("actor") ? 3 : 2}
+              strokeWidth="2"
             />
             <line x1="100" y1="85" x2="100" y2="115" stroke="#3b82f6" strokeWidth="2" />
             <line x1="80" y1="95" x2="120" y2="95" stroke="#3b82f6" strokeWidth="2" />
@@ -95,15 +160,14 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
 
           {/* System - CampusConnect */}
           <g
-            opacity={showSystem ? 1 : 0.1}
-            className={isNewlyAdded("system") ? "animate-pulse" : "transition-opacity duration-500"}
+            style={{ opacity: showSystem ? 1 : 0.08 }}
+            className={showSystem ? "animate-fade-in" : ""}
           >
             <rect 
               x="450" y="60" width="130" height="45" rx="4" 
-              fill={isNewlyAdded("system") ? "#22d3ee" : "#1e1e26"}
-              fillOpacity={isNewlyAdded("system") ? 0.2 : 1}
+              fill="#1e1e26"
               stroke="#22d3ee" 
-              strokeWidth={isNewlyAdded("system") ? 3 : 2}
+              strokeWidth="2"
             />
             <text x="515" y="87" textAnchor="middle" className="fill-foreground text-sm">:CampusConnect</text>
             <line x1="515" y1="105" x2="515" y2="500" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
@@ -111,56 +175,45 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
 
           {/* Messages */}
           {messages.map((msg) => {
-            const visible = isMessageVisible(msg.id);
-            const isNew = isNewlyAdded("message", msg.id);
-            const responseNew = isNewlyAdded("response");
+            const msgVisible = isMessageVisible(msg.id);
+            const respVisible = isResponseVisible(msg.id);
 
             return (
-              <g 
-                key={msg.id}
-                opacity={visible ? 1 : 0.08}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
-              >
-                {/* Activation bars */}
-                <rect 
-                  x="95" y={msg.y - 5} width="10" height="30" 
-                  fill="#3b82f6" 
-                  opacity={isNew ? 0.8 : 0.5}
-                />
-                <rect 
-                  x="510" y={msg.y - 5} width="10" height="40" 
-                  fill="#22d3ee" 
-                  opacity={isNew ? 0.8 : 0.5}
-                />
-
+              <g key={msg.id}>
                 {/* Request arrow */}
-                <line 
-                  x1="105" y1={msg.y} x2="510" y2={msg.y} 
-                  stroke={isNew ? "#22d3ee" : "#e4e4e7"} 
-                  strokeWidth={isNew ? 2.5 : 1.5}
-                  markerEnd="url(#arrowhead-ssd)"
-                />
-                <text 
-                  x="307" y={msg.y - 8} 
-                  textAnchor="middle" 
-                  className={`text-sm ${isNew ? "fill-foreground font-medium" : "fill-foreground"}`}
-                >
-                  {msg.id}: {msg.label}
-                </text>
+                <g style={{ opacity: msgVisible ? 1 : 0.05 }}>
+                  <line 
+                    x1="105" y1={msg.y} x2="510" y2={msg.y} 
+                    stroke="#e4e4e7"
+                    strokeWidth="1.5"
+                    markerEnd="url(#arrowhead-ssd)"
+                    className={msgVisible ? "animate-draw" : ""}
+                  />
+                  <text 
+                    x="307" y={msg.y - 8} 
+                    textAnchor="middle" 
+                    className={`text-sm fill-foreground ${msgVisible ? "animate-fade-in" : ""}`}
+                    style={{ opacity: msgVisible ? 1 : 0 }}
+                  >
+                    {msg.id}: {msg.label}
+                  </text>
+                </g>
 
                 {/* Response arrow */}
-                <g opacity={showResponses ? 1 : 0.1} className={responseNew && visible ? "animate-pulse" : ""}>
+                <g style={{ opacity: respVisible ? 1 : 0.05 }}>
                   <line 
                     x1="510" y1={msg.y + 25} x2="105" y2={msg.y + 25} 
-                    stroke={responseNew ? "#22d3ee" : "#e4e4e7"} 
-                    strokeWidth={responseNew ? 2.5 : 1.5}
+                    stroke="#e4e4e7"
+                    strokeWidth="1.5"
                     strokeDasharray="4,2" 
                     markerEnd="url(#arrowhead-ssd)"
+                    className={respVisible ? "animate-draw" : ""}
                   />
                   <text 
                     x="307" y={msg.y + 42} 
                     textAnchor="middle" 
-                    className={`text-xs ${responseNew ? "fill-accent" : "fill-muted-foreground"}`}
+                    className={`text-xs fill-muted-foreground ${respVisible ? "animate-fade-in" : ""}`}
+                    style={{ opacity: respVisible ? 1 : 0 }}
                   >
                     {msg.response}
                   </text>
