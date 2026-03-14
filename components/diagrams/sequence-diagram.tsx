@@ -1,223 +1,180 @@
 "use client";
 
-import { useState } from "react";
+interface SequenceDiagramProps {
+  currentStep: number | null;
+}
+
+const lifelines = [
+  { id: "daniel", label: "Daniel", x: 80, color: "#3b82f6", isActor: true },
+  { id: "ui", label: ":UI", x: 180, color: "#22d3ee" },
+  { id: "controller", label: ":EventController", x: 310, color: "#22d3ee" },
+  { id: "org", label: ":Organization", x: 450, color: "#22d3ee" },
+  { id: "event", label: ":Event", x: 570, color: "#22d3ee" },
+  { id: "student", label: ":Student", x: 680, color: "#22d3ee" },
+  { id: "students", label: "Students", x: 800, color: "#3b82f6", isActor: true },
+];
+
+// Map building process steps to what elements should be visible
+const stepVisibility = {
+  1: { lifelines: [], messages: [], fragments: false }, // Just identify scenario
+  2: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [], fragments: false }, // Show participants
+  3: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [], fragments: false }, // Lifelines drawn
+  4: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fragments: false }, // Add messages
+  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fragments: false }, // Activation & returns
+  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fragments: true }, // Add loop fragment
+};
 
 interface Message {
   id: number;
   from: string;
   to: string;
   label: string;
-  description: string;
   y: number;
   isReturn?: boolean;
 }
 
 const messages: Message[] = [
-  { id: 1, from: "daniel", to: "ui", label: "navigateToEventPage()", description: "Daniel opens the event creation page in the UI", y: 130 },
-  { id: 2, from: "ui", to: "controller", label: "getEventForm()", description: "UI requests the event creation form from EventController", y: 160 },
-  { id: 3, from: "daniel", to: "ui", label: "enterEventDetails()", description: "Daniel fills in event details: title, description, date, location, capacity", y: 210 },
-  { id: 4, from: "ui", to: "controller", label: "createEvent(details)", description: "UI sends the event creation request with all details to the controller", y: 250 },
-  { id: 5, from: "controller", to: "org", label: "validateOfficer(daniel)", description: "Controller checks if Daniel is an officer of the organization", y: 285 },
-  { id: 6, from: "org", to: "controller", label: "isValid", description: "Organization confirms Daniel has permission to create events", y: 310, isReturn: true },
-  { id: 7, from: "controller", to: "event", label: "new Event(...)", description: "Controller creates a new Event object with all the provided details", y: 355 },
-  { id: 8, from: "controller", to: "org", label: "addEvent(event)", description: "The new event is added to the organization's event list", y: 385 },
-  { id: 9, from: "controller", to: "ui", label: "eventCreated", description: "Controller confirms successful event creation back to the UI", y: 415, isReturn: true },
-  { id: 10, from: "students", to: "student", label: "viewEvent()", description: "Students browse and view the newly created event", y: 495 },
-  { id: 11, from: "student", to: "event", label: "rsvp(student)", description: "A student sends an RSVP request to attend the event", y: 530 },
-  { id: 12, from: "event", to: "event", label: "checkCapacity()", description: "Event checks if there's still room for more attendees", y: 555 },
-  { id: 13, from: "event", to: "student", label: "addAttendee()", description: "If capacity allows, student is added to the attendee list", y: 620 },
-  { id: 14, from: "student", to: "students", label: "rsvpConfirmed", description: "Student receives confirmation of successful RSVP", y: 640, isReturn: true },
+  { id: 1, from: "daniel", to: "ui", label: "navigateToEventPage()", y: 130 },
+  { id: 2, from: "ui", to: "controller", label: "getEventForm()", y: 160 },
+  { id: 3, from: "daniel", to: "ui", label: "enterEventDetails()", y: 200 },
+  { id: 4, from: "ui", to: "controller", label: "createEvent(details)", y: 235 },
+  { id: 5, from: "controller", to: "org", label: "validateOfficer(daniel)", y: 270 },
+  { id: 6, from: "org", to: "controller", label: "isValid", y: 295, isReturn: true },
+  { id: 7, from: "controller", to: "event", label: "new Event(...)", y: 330 },
+  { id: 8, from: "controller", to: "org", label: "addEvent(event)", y: 360 },
+  { id: 9, from: "controller", to: "ui", label: "eventCreated", y: 390, isReturn: true },
+  { id: 10, from: "students", to: "student", label: "viewEvent()", y: 455 },
+  { id: 11, from: "student", to: "event", label: "rsvp(student)", y: 485 },
+  { id: 12, from: "event", to: "event", label: "checkCapacity()", y: 510 },
+  { id: 13, from: "event", to: "student", label: "addAttendee()", y: 555 },
+  { id: 14, from: "student", to: "students", label: "rsvpConfirmed", y: 580, isReturn: true },
 ];
 
-const lifelines = [
-  { id: "daniel", label: "Daniel", x: 90, color: "#3b82f6", isActor: true },
-  { id: "ui", label: ":UI", x: 210, color: "#22d3ee", isActor: false },
-  { id: "controller", label: ":EventController", x: 350, color: "#22d3ee", isActor: false },
-  { id: "org", label: ":Organization", x: 500, color: "#22d3ee", isActor: false },
-  { id: "event", label: ":Event", x: 630, color: "#22d3ee", isActor: false },
-  { id: "student", label: ":Student", x: 750, color: "#22d3ee", isActor: false },
-  { id: "students", label: "Students", x: 890, color: "#3b82f6", isActor: true },
-];
-
-export function SequenceDiagram() {
-  const [currentStep, setCurrentStep] = useState<number | null>(null);
-  const [hoveredElement, setHoveredElement] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const playAnimation = () => {
-    setIsPlaying(true);
-    setCurrentStep(0);
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      if (step >= messages.length) {
-        clearInterval(interval);
-        setIsPlaying(false);
-        setCurrentStep(null);
-      } else {
-        setCurrentStep(step);
-      }
-    }, 1200);
-  };
+export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
+  const step = currentStep as keyof typeof stepVisibility | null;
+  const visibility = step ? stepVisibility[step] : null;
+  const showAll = visibility === null;
 
   const getLifelineX = (id: string) => lifelines.find(l => l.id === id)?.x || 0;
 
+  const isLifelineVisible = (id: string) => {
+    if (showAll) return true;
+    return visibility?.lifelines.includes(id) ?? false;
+  };
+
+  const isMessageVisible = (id: number) => {
+    if (showAll) return true;
+    return visibility?.messages.includes(id) ?? false;
+  };
+
+  const showFragments = showAll || (visibility?.fragments ?? false);
+
+  // Highlight newly added elements
+  const isNewlyAdded = (type: "lifeline" | "message" | "fragment", id?: string | number) => {
+    if (!step || step === 1) return false;
+    const prevStep = (step - 1) as keyof typeof stepVisibility;
+    const prevVisibility = stepVisibility[prevStep];
+    
+    if (type === "lifeline" && id) {
+      return !prevVisibility.lifelines.includes(id as string) && visibility?.lifelines.includes(id as string);
+    }
+    if (type === "message" && id) {
+      return !prevVisibility.messages.includes(id as number) && visibility?.messages.includes(id as number);
+    }
+    if (type === "fragment") {
+      return !prevVisibility.fragments && visibility?.fragments;
+    }
+    return false;
+  };
+
   return (
-    <div className="w-full space-y-4">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 border border-border">
-        <button
-          onClick={playAnimation}
-          disabled={isPlaying}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-          </svg>
-          Play Animation
-        </button>
-        <button
-          onClick={() => setCurrentStep(null)}
-          className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          Reset
-        </button>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Step:</span>
-          <select
-            value={currentStep ?? ""}
-            onChange={(e) => setCurrentStep(e.target.value ? Number(e.target.value) : null)}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm"
-          >
-            <option value="">All</option>
-            {messages.map((m) => (
-              <option key={m.id} value={m.id - 1}>
-                {m.id}: {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Info Panel */}
-      {(hoveredElement || currentStep !== null) && (
-        <div className="rounded-lg bg-accent/50 border border-accent p-4 transition-all">
-          <p className="text-sm text-foreground">
-            {hoveredElement
-              ? lifelines.find(l => l.id === hoveredElement)
-                ? `${lifelines.find(l => l.id === hoveredElement)?.label} - ${lifelines.find(l => l.id === hoveredElement)?.isActor ? "Actor (external entity interacting with system)" : "Object (system component)"}`
-                : messages.find(m => `msg-${m.id}` === hoveredElement)?.description
-              : currentStep !== null
-              ? messages[currentStep]?.description
-              : ""}
-          </p>
-        </div>
-      )}
-
-      {/* Diagram */}
+    <div className="w-full">
       <div className="w-full overflow-x-auto">
         <svg
-          viewBox="0 0 1000 750"
-          className="w-full min-w-[800px] h-auto"
-          style={{ minHeight: "600px" }}
+          viewBox="0 0 900 680"
+          className="w-full min-w-[700px] h-auto"
+          style={{ minHeight: "550px" }}
         >
-          <rect width="1000" height="750" fill="#131318" rx="8" />
+          <rect width="900" height="680" fill="#131318" rx="8" />
 
-          <text x="500" y="35" textAnchor="middle" className="fill-foreground text-base font-semibold">
+          <text x="450" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             Sequence Diagram: Event Creation and RSVP (Scenario 2)
           </text>
 
           {/* Lifelines */}
-          {lifelines.map((lifeline) => (
-            <g
-              key={lifeline.id}
-              onMouseEnter={() => setHoveredElement(lifeline.id)}
-              onMouseLeave={() => setHoveredElement(null)}
-              className="cursor-pointer"
-            >
-              <rect
-                x={lifeline.x - 40}
-                y="60"
-                width={lifeline.id === "controller" ? 120 : 80}
-                height="40"
-                rx="4"
-                fill={hoveredElement === lifeline.id ? lifeline.color : "#1e1e26"}
-                fillOpacity={hoveredElement === lifeline.id ? 0.3 : 1}
-                stroke={lifeline.color}
-                strokeWidth={hoveredElement === lifeline.id ? 3 : 2}
-                className="transition-all duration-200"
-              />
-              <text
-                x={lifeline.x}
-                y="85"
-                textAnchor="middle"
-                className="fill-foreground text-sm pointer-events-none"
+          {lifelines.map((lifeline) => {
+            const visible = isLifelineVisible(lifeline.id);
+            const isNew = isNewlyAdded("lifeline", lifeline.id);
+            const boxWidth = lifeline.id === "controller" ? 100 : 70;
+
+            return (
+              <g
+                key={lifeline.id}
+                opacity={visible ? 1 : 0.1}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
               >
-                {lifeline.label}
-              </text>
-              <line
-                x1={lifeline.x}
-                y1="100"
-                x2={lifeline.x}
-                y2="700"
-                stroke={lifeline.color}
-                strokeDasharray="6,4"
-                strokeWidth="1.5"
-                opacity={hoveredElement === lifeline.id ? 1 : 0.7}
-              />
-            </g>
-          ))}
+                <rect
+                  x={lifeline.x - boxWidth / 2}
+                  y="50"
+                  width={boxWidth}
+                  height="36"
+                  rx="4"
+                  fill={isNew ? lifeline.color : "#1e1e26"}
+                  fillOpacity={isNew ? 0.3 : 1}
+                  stroke={lifeline.color}
+                  strokeWidth={isNew ? 3 : 2}
+                />
+                <text
+                  x={lifeline.x}
+                  y="73"
+                  textAnchor="middle"
+                  className="fill-foreground text-xs"
+                >
+                  {lifeline.label}
+                </text>
+                <line
+                  x1={lifeline.x}
+                  y1="86"
+                  x2={lifeline.x}
+                  y2="620"
+                  stroke={lifeline.color}
+                  strokeDasharray="6,4"
+                  strokeWidth="1.5"
+                  opacity={0.7}
+                />
+              </g>
+            );
+          })}
 
           {/* Messages */}
-          {messages.map((msg, index) => {
+          {messages.map((msg) => {
             const fromX = getLifelineX(msg.from);
             const toX = getLifelineX(msg.to);
-            const isVisible = currentStep === null || index <= currentStep;
-            const isActive = currentStep === index;
+            const visible = isMessageVisible(msg.id);
+            const isNew = isNewlyAdded("message", msg.id);
             const isSelfCall = msg.from === msg.to;
 
             return (
               <g
                 key={msg.id}
-                onMouseEnter={() => setHoveredElement(`msg-${msg.id}`)}
-                onMouseLeave={() => setHoveredElement(null)}
-                className="cursor-pointer"
-                opacity={isVisible ? 1 : 0.2}
+                opacity={visible ? 1 : 0.08}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
               >
                 {isSelfCall ? (
                   <>
-                    <line
-                      x1={fromX + 5}
-                      y1={msg.y}
-                      x2={fromX + 40}
-                      y2={msg.y}
-                      stroke={isActive ? "#22d3ee" : "#e4e4e7"}
-                      strokeWidth={isActive ? 2.5 : 1.5}
-                      className="transition-all duration-300"
-                    />
-                    <line
-                      x1={fromX + 40}
-                      y1={msg.y}
-                      x2={fromX + 40}
-                      y2={msg.y + 20}
-                      stroke={isActive ? "#22d3ee" : "#e4e4e7"}
-                      strokeWidth={isActive ? 2.5 : 1.5}
-                    />
-                    <line
-                      x1={fromX + 40}
-                      y1={msg.y + 20}
-                      x2={fromX + 5}
-                      y2={msg.y + 20}
-                      stroke={isActive ? "#22d3ee" : "#e4e4e7"}
-                      strokeWidth={isActive ? 2.5 : 1.5}
+                    <path
+                      d={`M ${fromX + 5} ${msg.y} L ${fromX + 35} ${msg.y} L ${fromX + 35} ${msg.y + 20} L ${fromX + 5} ${msg.y + 20}`}
+                      fill="none"
+                      stroke={isNew ? "#22d3ee" : "#e4e4e7"}
+                      strokeWidth={isNew ? 2.5 : 1.5}
                       markerEnd="url(#arrowhead)"
                     />
                     <text
-                      x={fromX + 50}
+                      x={fromX + 45}
                       y={msg.y + 5}
-                      className={`text-xs pointer-events-none ${isActive ? "fill-accent" : "fill-muted-foreground"}`}
+                      className={`text-xs ${isNew ? "fill-accent" : "fill-muted-foreground"}`}
                     >
-                      {msg.id}: {msg.label}
+                      {msg.label}
                     </text>
                   </>
                 ) : (
@@ -227,60 +184,59 @@ export function SequenceDiagram() {
                       y1={msg.y}
                       x2={toX + (fromX < toX ? -5 : 5)}
                       y2={msg.y}
-                      stroke={isActive ? "#22d3ee" : "#e4e4e7"}
-                      strokeWidth={isActive ? 2.5 : 1.5}
+                      stroke={isNew ? "#22d3ee" : "#e4e4e7"}
+                      strokeWidth={isNew ? 2.5 : 1.5}
                       strokeDasharray={msg.isReturn ? "4,2" : "none"}
                       markerEnd="url(#arrowhead)"
-                      className="transition-all duration-300"
                     />
                     <text
                       x={(fromX + toX) / 2}
-                      y={msg.y - 8}
+                      y={msg.y - 6}
                       textAnchor="middle"
-                      className={`text-xs pointer-events-none ${isActive ? "fill-accent" : "fill-muted-foreground"}`}
+                      className={`text-xs ${isNew ? "fill-accent" : "fill-muted-foreground"}`}
                     >
-                      {msg.id}: {msg.label}
+                      {msg.label}
                     </text>
                   </>
-                )}
-                
-                {/* Hover highlight */}
-                {hoveredElement === `msg-${msg.id}` && (
-                  <rect
-                    x={Math.min(fromX, toX) - 10}
-                    y={msg.y - 20}
-                    width={Math.abs(toX - fromX) + 20}
-                    height="30"
-                    fill="#22d3ee"
-                    fillOpacity="0.1"
-                    rx="4"
-                  />
                 )}
               </g>
             );
           })}
 
           {/* Loop Fragment */}
-          <rect x="40" y="455" width="920" height="200" fill="none" stroke="#71717a" strokeWidth="1.5" rx="4" />
-          <rect x="40" y="455" width="80" height="22" fill="#27272a" stroke="#71717a" strokeWidth="1.5" />
-          <text x="80" y="470" textAnchor="middle" className="fill-muted-foreground text-xs font-semibold">loop</text>
-          <text x="140" y="470" className="fill-muted-foreground text-xs">[for each student until full]</text>
-
-          {/* Alt fragment */}
-          <rect x="580" y="590" width="340" height="55" fill="none" stroke="#71717a" strokeWidth="1" strokeDasharray="4,2" rx="2" />
-          <text x="595" y="605" className="fill-muted-foreground text-xs">[if capacity available]</text>
+          <g 
+            opacity={showFragments ? 1 : 0.08}
+            className={isNewlyAdded("fragment") ? "animate-pulse" : "transition-opacity duration-500"}
+          >
+            <rect 
+              x="35" y="420" width="830" height="190" 
+              fill="none" 
+              stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
+              strokeWidth={isNewlyAdded("fragment") ? 2.5 : 1.5} 
+              rx="4" 
+            />
+            <rect 
+              x="35" y="420" width="60" height="20" 
+              fill="#27272a" 
+              stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
+              strokeWidth={isNewlyAdded("fragment") ? 2 : 1.5} 
+            />
+            <text x="65" y="434" textAnchor="middle" className="fill-muted-foreground text-xs font-semibold">loop</text>
+            <text x="110" y="434" className="fill-muted-foreground text-xs">[for each student]</text>
+          </g>
 
           {/* Legend */}
-          <g transform="translate(50, 710)">
+          <g transform="translate(50, 640)">
             <rect x="0" y="0" width="12" height="12" fill="#3b82f6" rx="2" />
             <text x="18" y="10" className="fill-muted-foreground text-xs">Actor</text>
             <rect x="80" y="0" width="12" height="12" fill="#22d3ee" rx="2" />
             <text x="98" y="10" className="fill-muted-foreground text-xs">Object</text>
-            <line x1="170" y1="6" x2="200" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
-            <text x="208" y="10" className="fill-muted-foreground text-xs">Message</text>
-            <line x1="280" y1="6" x2="310" y2="6" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" />
-            <text x="318" y="10" className="fill-muted-foreground text-xs">Return</text>
-            <text x="400" y="10" className="fill-accent text-xs">Click elements to learn more!</text>
+            <line x1="160" y1="6" x2="190" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
+            <text x="198" y="10" className="fill-muted-foreground text-xs">Message</text>
+            <line x1="270" y1="6" x2="300" y2="6" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" />
+            <text x="308" y="10" className="fill-muted-foreground text-xs">Return</text>
+            <rect x="370" y="0" width="40" height="12" fill="none" stroke="#71717a" strokeWidth="1" rx="2" />
+            <text x="418" y="10" className="fill-muted-foreground text-xs">Fragment</text>
           </g>
 
           <defs>

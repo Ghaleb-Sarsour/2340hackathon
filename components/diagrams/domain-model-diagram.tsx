@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+interface DomainModelDiagramProps {
+  currentStep: number | null;
+}
 
 interface Concept {
   id: string;
   name: string;
   attributes: string[];
-  description: string;
   x: number;
   y: number;
   width: number;
-  height: number;
   color: string;
 }
 
@@ -19,232 +19,119 @@ interface Association {
   from: string;
   to: string;
   label: string;
-  fromMultiplicity: string;
-  toMultiplicity: string;
-  description: string;
+  fromMult: string;
+  toMult: string;
 }
 
 const concepts: Concept[] = [
-  { 
-    id: "student", 
-    name: "Student", 
-    attributes: ["name: String", "gtId: String", "email: String", "major: String"],
-    description: "A GT student who can join organizations, attend events, and potentially lead organizations as president.",
-    x: 50, y: 80, width: 150, height: 120, color: "#3b82f6"
-  },
-  { 
-    id: "organization", 
-    name: "Organization", 
-    attributes: ["name: String", "orgId: String", "description: String"],
-    description: "A campus organization that students can join. Has a president and can host events.",
-    x: 375, y: 80, width: 150, height: 105, color: "#22d3ee"
-  },
-  { 
-    id: "event", 
-    name: "Event", 
-    attributes: ["title: String", "description: String", "date: Date", "location: String", "capacity: Integer"],
-    description: "An event hosted by an organization that students can RSVP to attend.",
-    x: 700, y: 80, width: 150, height: 135, color: "#10b981"
-  },
-  { 
-    id: "membershipRequest", 
-    name: "MembershipRequest", 
-    attributes: ["requestDate: Date", "status: String"],
-    description: "A pending request from a student to join an organization. Can be approved or rejected.",
-    x: 50, y: 320, width: 150, height: 90, color: "#f59e0b"
-  },
-  { 
-    id: "membership", 
-    name: "Membership", 
-    attributes: ["role: String", "joinDate: Date"],
-    description: "Represents a student's membership in an organization with their role (member, officer, etc.).",
-    x: 250, y: 320, width: 150, height: 75, color: "#8b5cf6"
-  },
-  { 
-    id: "rsvp", 
-    name: "RSVP", 
-    attributes: ["rsvpDate: Date", "status: String"],
-    description: "A student's registration to attend a specific event. Tracks attendance commitment.",
-    x: 500, y: 320, width: 150, height: 75, color: "#ec4899"
-  },
+  { id: "student", name: "Student", attributes: ["name", "gtId", "email"], x: 50, y: 80, width: 120, color: "#3b82f6" },
+  { id: "organization", name: "Organization", attributes: ["name", "orgId", "description"], x: 330, y: 80, width: 120, color: "#22d3ee" },
+  { id: "event", name: "Event", attributes: ["title", "date", "location", "capacity"], x: 610, y: 80, width: 120, color: "#10b981" },
+  { id: "membershipRequest", name: "MembershipRequest", attributes: ["requestDate", "status"], x: 50, y: 300, width: 140, color: "#f59e0b" },
+  { id: "membership", name: "Membership", attributes: ["role", "joinDate"], x: 250, y: 300, width: 120, color: "#8b5cf6" },
+  { id: "rsvp", name: "RSVP", attributes: ["rsvpDate", "status"], x: 470, y: 300, width: 100, color: "#ec4899" },
 ];
 
 const associations: Association[] = [
-  { id: "student-membership", from: "student", to: "membership", label: "has", fromMultiplicity: "1", toMultiplicity: "*", description: "A student can have multiple memberships in different organizations" },
-  { id: "membership-org", from: "membership", to: "organization", label: "belongs to", fromMultiplicity: "*", toMultiplicity: "1", description: "Each membership belongs to exactly one organization" },
-  { id: "student-request", from: "student", to: "membershipRequest", label: "submits", fromMultiplicity: "1", toMultiplicity: "*", description: "A student can submit multiple membership requests" },
-  { id: "request-org", from: "membershipRequest", to: "organization", label: "for", fromMultiplicity: "*", toMultiplicity: "1", description: "Each request is for joining a specific organization" },
-  { id: "org-event", from: "organization", to: "event", label: "hosts", fromMultiplicity: "1..*", toMultiplicity: "*", description: "Organizations can host multiple events" },
-  { id: "student-rsvp", from: "student", to: "rsvp", label: "makes", fromMultiplicity: "1", toMultiplicity: "*", description: "A student can RSVP to multiple events" },
-  { id: "rsvp-event", from: "rsvp", to: "event", label: "for", fromMultiplicity: "*", toMultiplicity: "1", description: "Each RSVP is for a specific event" },
-  { id: "student-president", from: "student", to: "organization", label: "presides over", fromMultiplicity: "0..1", toMultiplicity: "1", description: "A student can be president of at most one organization" },
+  { id: "student-membership", from: "student", to: "membership", label: "has", fromMult: "1", toMult: "*" },
+  { id: "membership-org", from: "membership", to: "organization", label: "belongs to", fromMult: "*", toMult: "1" },
+  { id: "student-request", from: "student", to: "membershipRequest", label: "submits", fromMult: "1", toMult: "*" },
+  { id: "request-org", from: "membershipRequest", to: "organization", label: "for", fromMult: "*", toMult: "1" },
+  { id: "org-event", from: "organization", to: "event", label: "hosts", fromMult: "1", toMult: "*" },
+  { id: "student-rsvp", from: "student", to: "rsvp", label: "makes", fromMult: "1", toMult: "*" },
+  { id: "rsvp-event", from: "rsvp", to: "event", label: "for", fromMult: "*", toMult: "1" },
 ];
 
-export function DomainModelDiagram() {
-  const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
-  const [selectedAssociation, setSelectedAssociation] = useState<string | null>(null);
-  const [highlightMode, setHighlightMode] = useState<"none" | "student" | "organization" | "event">("none");
+// Map building process steps
+const stepVisibility = {
+  1: { concepts: [], associations: [] }, // Identify nouns
+  2: { concepts: ["student", "organization", "event"], associations: [] }, // Core concepts
+  3: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: [] }, // All concepts
+  4: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event"] }, // Core associations
+  5: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] }, // All associations
+  6: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] }, // Validate & refine
+};
 
-  const getHighlightedConcepts = () => {
-    switch (highlightMode) {
-      case "student":
-        return ["student", "membership", "membershipRequest", "rsvp"];
-      case "organization":
-        return ["organization", "membership", "membershipRequest", "event"];
-      case "event":
-        return ["event", "rsvp", "organization"];
-      default:
-        return [];
-    }
+export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
+  const step = currentStep as keyof typeof stepVisibility | null;
+  const visibility = step ? stepVisibility[step] : null;
+  const showAll = visibility === null;
+
+  const isConceptVisible = (id: string) => showAll || (visibility?.concepts.includes(id) ?? false);
+  const isAssociationVisible = (id: string) => showAll || (visibility?.associations.includes(id) ?? false);
+
+  const isNewlyAdded = (type: "concept" | "association", id: string) => {
+    if (!step || step === 1) return false;
+    const prevStep = (step - 1) as keyof typeof stepVisibility;
+    const prev = stepVisibility[prevStep];
+    if (type === "concept") return !prev.concepts.includes(id) && visibility?.concepts.includes(id);
+    return !prev.associations.includes(id) && visibility?.associations.includes(id);
   };
 
-  const highlightedConcepts = getHighlightedConcepts();
+  const getConceptCenter = (id: string) => {
+    const c = concepts.find(c => c.id === id)!;
+    const height = 28 + c.attributes.length * 14 + 8;
+    return { x: c.x + c.width / 2, y: c.y + height / 2 };
+  };
 
   return (
-    <div className="w-full space-y-4">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 border border-border">
-        <span className="text-sm text-muted-foreground">Highlight relationships:</span>
-        <div className="flex gap-2">
-          {[
-            { value: "none", label: "All", color: "bg-muted" },
-            { value: "student", label: "Student-centric", color: "bg-blue-500" },
-            { value: "organization", label: "Org-centric", color: "bg-cyan-500" },
-            { value: "event", label: "Event-centric", color: "bg-emerald-500" },
-          ].map((mode) => (
-            <button
-              key={mode.value}
-              onClick={() => setHighlightMode(mode.value as typeof highlightMode)}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                highlightMode === mode.value 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${mode.color}`} />
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Info Panel */}
-      {(selectedConcept || selectedAssociation) && (
-        <div className="rounded-lg bg-accent/50 border border-accent p-4 transition-all">
-          {selectedConcept && (
-            <div>
-              <h4 className="font-semibold text-foreground mb-1">
-                {concepts.find(c => c.id === selectedConcept)?.name}
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                {concepts.find(c => c.id === selectedConcept)?.description}
-              </p>
-            </div>
-          )}
-          {selectedAssociation && (
-            <div>
-              <h4 className="font-semibold text-foreground mb-1">
-                Association: {associations.find(a => a.id === selectedAssociation)?.label}
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                {associations.find(a => a.id === selectedAssociation)?.description}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Diagram */}
+    <div className="w-full">
       <div className="w-full overflow-x-auto">
         <svg
-          viewBox="0 0 900 550"
-          className="w-full min-w-[700px] h-auto"
-          style={{ minHeight: "450px" }}
+          viewBox="0 0 780 480"
+          className="w-full min-w-[600px] h-auto"
+          style={{ minHeight: "400px" }}
         >
-          <rect width="900" height="550" fill="#131318" rx="8" />
+          <rect width="780" height="480" fill="#131318" rx="8" />
 
-          <text x="450" y="35" textAnchor="middle" className="fill-foreground text-base font-semibold">
+          <text x="390" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
             Domain Model: CampusConnect
           </text>
 
-          {/* Associations (draw first so they're behind) */}
+          {/* Associations */}
           {associations.map((assoc) => {
-            const fromConcept = concepts.find(c => c.id === assoc.from)!;
-            const toConcept = concepts.find(c => c.id === assoc.to)!;
-            const isHighlighted = highlightMode === "none" || 
-              (highlightedConcepts.includes(assoc.from) && highlightedConcepts.includes(assoc.to));
-            const isSelected = selectedAssociation === assoc.id;
-
-            // Calculate line positions based on concept positions
-            let x1 = fromConcept.x + fromConcept.width / 2;
-            let y1 = fromConcept.y + fromConcept.height / 2;
-            let x2 = toConcept.x + toConcept.width / 2;
-            let y2 = toConcept.y + toConcept.height / 2;
-
-            // Curved path for president relationship
-            if (assoc.id === "student-president") {
-              return (
-                <g
-                  key={assoc.id}
-                  onMouseEnter={() => setSelectedAssociation(assoc.id)}
-                  onMouseLeave={() => setSelectedAssociation(null)}
-                  className="cursor-pointer"
-                  opacity={isHighlighted ? 1 : 0.2}
-                >
-                  <path
-                    d={`M ${fromConcept.x + fromConcept.width} ${fromConcept.y + 30} Q ${300} ${50} ${toConcept.x} ${toConcept.y + 30}`}
-                    fill="none"
-                    stroke={isSelected ? "#22d3ee" : "#e4e4e7"}
-                    strokeWidth={isSelected ? 2.5 : 1.5}
-                    className="transition-all duration-200"
-                  />
-                  <text x="290" y="55" textAnchor="middle" className="fill-accent text-xs">{assoc.label}</text>
-                  <text x="220" y="90" className="fill-muted-foreground text-xs">{assoc.fromMultiplicity}</text>
-                  <text x="360" y="75" className="fill-muted-foreground text-xs">{assoc.toMultiplicity}</text>
-                </g>
-              );
-            }
+            const from = getConceptCenter(assoc.from);
+            const to = getConceptCenter(assoc.to);
+            const visible = isAssociationVisible(assoc.id);
+            const isNew = isNewlyAdded("association", assoc.id);
+            const midX = (from.x + to.x) / 2;
+            const midY = (from.y + to.y) / 2;
 
             return (
               <g
                 key={assoc.id}
-                onMouseEnter={() => setSelectedAssociation(assoc.id)}
-                onMouseLeave={() => setSelectedAssociation(null)}
-                className="cursor-pointer"
-                opacity={isHighlighted ? 1 : 0.2}
+                opacity={visible ? 1 : 0.08}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
               >
                 <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={isSelected ? "#22d3ee" : "#e4e4e7"}
-                  strokeWidth={isSelected ? 2.5 : 1.5}
-                  className="transition-all duration-200"
+                  x1={from.x}
+                  y1={from.y}
+                  x2={to.x}
+                  y2={to.y}
+                  stroke={isNew ? "#22d3ee" : "#71717a"}
+                  strokeWidth={isNew ? 2.5 : 1.5}
                 />
-                {/* Label */}
                 <text
-                  x={(x1 + x2) / 2}
-                  y={(y1 + y2) / 2 - 8}
+                  x={midX}
+                  y={midY - 6}
                   textAnchor="middle"
-                  className="fill-accent text-xs"
+                  className={`text-xs ${isNew ? "fill-accent font-medium" : "fill-muted-foreground"}`}
                 >
                   {assoc.label}
                 </text>
-                {/* Multiplicities */}
                 <text
-                  x={x1 + (x2 - x1) * 0.15}
-                  y={y1 + (y2 - y1) * 0.15 - 5}
+                  x={from.x + (to.x - from.x) * 0.15}
+                  y={from.y + (to.y - from.y) * 0.15 - 8}
                   className="fill-muted-foreground text-xs"
                 >
-                  {assoc.fromMultiplicity}
+                  {assoc.fromMult}
                 </text>
                 <text
-                  x={x2 - (x2 - x1) * 0.15}
-                  y={y2 - (y2 - y1) * 0.15 - 5}
+                  x={to.x - (to.x - from.x) * 0.15}
+                  y={to.y - (to.y - from.y) * 0.15 - 8}
                   className="fill-muted-foreground text-xs"
                 >
-                  {assoc.toMultiplicity}
+                  {assoc.toMult}
                 </text>
               </g>
             );
@@ -252,54 +139,45 @@ export function DomainModelDiagram() {
 
           {/* Concepts */}
           {concepts.map((concept) => {
-            const isHighlighted = highlightMode === "none" || highlightedConcepts.includes(concept.id);
-            const isSelected = selectedConcept === concept.id;
+            const visible = isConceptVisible(concept.id);
+            const isNew = isNewlyAdded("concept", concept.id);
+            const attrHeight = concept.attributes.length * 14 + 8;
+            const totalHeight = 28 + attrHeight;
 
             return (
               <g
                 key={concept.id}
                 transform={`translate(${concept.x}, ${concept.y})`}
-                onMouseEnter={() => setSelectedConcept(concept.id)}
-                onMouseLeave={() => setSelectedConcept(null)}
-                className="cursor-pointer"
-                opacity={isHighlighted ? 1 : 0.3}
+                opacity={visible ? 1 : 0.08}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
               >
-                {/* Card background */}
                 <rect
                   width={concept.width}
-                  height={concept.height}
+                  height={totalHeight}
                   rx="4"
-                  fill={isSelected ? concept.color : "#1e1e26"}
-                  fillOpacity={isSelected ? 0.2 : 1}
+                  fill={isNew ? concept.color : "#1e1e26"}
+                  fillOpacity={isNew ? 0.2 : 1}
                   stroke={concept.color}
-                  strokeWidth={isSelected ? 3 : 2}
-                  className="transition-all duration-200"
+                  strokeWidth={isNew ? 3 : 2}
                 />
                 {/* Header */}
-                <rect
-                  width={concept.width}
-                  height="30"
-                  rx="4"
-                  fill={concept.color}
-                  fillOpacity="0.2"
-                />
+                <rect width={concept.width} height="26" rx="4" fill={concept.color} fillOpacity="0.2" />
                 <text
                   x={concept.width / 2}
-                  y="20"
+                  y="18"
                   textAnchor="middle"
-                  className="fill-foreground text-sm font-semibold pointer-events-none"
+                  className="fill-foreground text-xs font-semibold"
                 >
                   {concept.name}
                 </text>
-                {/* Divider */}
-                <line x1="0" y1="30" x2={concept.width} y2="30" stroke={concept.color} strokeWidth="1" />
+                <line x1="0" y1="26" x2={concept.width} y2="26" stroke={concept.color} strokeWidth="1" />
                 {/* Attributes */}
                 {concept.attributes.map((attr, i) => (
                   <text
                     key={i}
-                    x="10"
-                    y={50 + i * 15}
-                    className="fill-muted-foreground text-xs pointer-events-none"
+                    x="8"
+                    y={42 + i * 14}
+                    className="fill-muted-foreground text-xs"
                   >
                     {attr}
                   </text>
@@ -309,25 +187,13 @@ export function DomainModelDiagram() {
           })}
 
           {/* Legend */}
-          <g transform="translate(50, 470)">
-            <text x="0" y="0" className="fill-foreground text-sm font-semibold">Multiplicity:</text>
-            <text x="0" y="20" className="fill-muted-foreground text-xs">1 = exactly one</text>
-            <text x="120" y="20" className="fill-muted-foreground text-xs">* = zero or more</text>
-            <text x="240" y="20" className="fill-muted-foreground text-xs">0..1 = zero or one</text>
-            <text x="360" y="20" className="fill-muted-foreground text-xs">1..* = one or more</text>
+          <g transform="translate(50, 440)">
+            <text x="0" y="0" className="fill-foreground text-xs font-semibold">Multiplicity:</text>
+            <text x="80" y="0" className="fill-muted-foreground text-xs">1 = exactly one</text>
+            <text x="180" y="0" className="fill-muted-foreground text-xs">* = zero or more</text>
+            <text x="290" y="0" className="fill-muted-foreground text-xs">0..1 = optional</text>
+            <text x="400" y="0" className="fill-muted-foreground text-xs">1..* = one or more</text>
           </g>
-
-          {/* Constraint note */}
-          <g transform="translate(550, 455)">
-            <rect width="300" height="50" rx="4" fill="#27272a" stroke="#71717a" strokeWidth="1" strokeDasharray="4,2" />
-            <text x="150" y="22" textAnchor="middle" className="fill-muted-foreground text-xs">Constraint: A student cannot be president</text>
-            <text x="150" y="38" textAnchor="middle" className="fill-muted-foreground text-xs">of more than one organization at a time.</text>
-          </g>
-
-          {/* Interactive hint */}
-          <text x="450" y="540" textAnchor="middle" className="fill-accent text-xs">
-            Click on concepts and associations to learn more!
-          </text>
         </svg>
       </div>
     </div>
