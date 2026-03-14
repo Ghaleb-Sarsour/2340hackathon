@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, cloneElement, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp, Play, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -292,7 +292,7 @@ export function DiagramLayout({
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 overflow-auto">
                 {/* Clone the diagram element and pass currentStep prop */}
-                {cloneElement(diagram, { currentStep })}
+                {React.cloneElement(diagram, { currentStep })}
               </div>
             </div>
           </div>
