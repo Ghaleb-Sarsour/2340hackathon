@@ -1,184 +1,201 @@
 "use client";
 
-export function DomainModelDiagram() {
+interface DomainModelDiagramProps {
+  currentStep: number | null;
+}
+
+interface Concept {
+  id: string;
+  name: string;
+  attributes: string[];
+  x: number;
+  y: number;
+  width: number;
+  color: string;
+}
+
+interface Association {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+  fromMult: string;
+  toMult: string;
+}
+
+const concepts: Concept[] = [
+  { id: "student", name: "Student", attributes: ["name", "gtId", "email"], x: 50, y: 80, width: 120, color: "#3b82f6" },
+  { id: "organization", name: "Organization", attributes: ["name", "orgId", "description"], x: 330, y: 80, width: 120, color: "#22d3ee" },
+  { id: "event", name: "Event", attributes: ["title", "date", "location", "capacity"], x: 610, y: 80, width: 120, color: "#10b981" },
+  { id: "membershipRequest", name: "MembershipRequest", attributes: ["requestDate", "status"], x: 50, y: 300, width: 140, color: "#f59e0b" },
+  { id: "membership", name: "Membership", attributes: ["role", "joinDate"], x: 250, y: 300, width: 120, color: "#8b5cf6" },
+  { id: "rsvp", name: "RSVP", attributes: ["rsvpDate", "status"], x: 470, y: 300, width: 100, color: "#ec4899" },
+];
+
+const associations: Association[] = [
+  { id: "student-membership", from: "student", to: "membership", label: "has", fromMult: "1", toMult: "*" },
+  { id: "membership-org", from: "membership", to: "organization", label: "belongs to", fromMult: "*", toMult: "1" },
+  { id: "student-request", from: "student", to: "membershipRequest", label: "submits", fromMult: "1", toMult: "*" },
+  { id: "request-org", from: "membershipRequest", to: "organization", label: "for", fromMult: "*", toMult: "1" },
+  { id: "org-event", from: "organization", to: "event", label: "hosts", fromMult: "1", toMult: "*" },
+  { id: "student-rsvp", from: "student", to: "rsvp", label: "makes", fromMult: "1", toMult: "*" },
+  { id: "rsvp-event", from: "rsvp", to: "event", label: "for", fromMult: "*", toMult: "1" },
+];
+
+// Map building process steps
+const stepVisibility = {
+  1: { concepts: [], associations: [] }, // Identify nouns
+  2: { concepts: ["student", "organization", "event"], associations: [] }, // Core concepts
+  3: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: [] }, // All concepts
+  4: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event"] }, // Core associations
+  5: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] }, // All associations
+  6: { concepts: ["student", "organization", "event", "membershipRequest", "membership", "rsvp"], associations: ["student-membership", "membership-org", "org-event", "student-request", "request-org", "student-rsvp", "rsvp-event"] }, // Validate & refine
+};
+
+export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
+  const step = currentStep as keyof typeof stepVisibility | null;
+  const visibility = step ? stepVisibility[step] : null;
+  const showAll = visibility === null;
+
+  const isConceptVisible = (id: string) => showAll || (visibility?.concepts.includes(id) ?? false);
+  const isAssociationVisible = (id: string) => showAll || (visibility?.associations.includes(id) ?? false);
+
+  const isNewlyAdded = (type: "concept" | "association", id: string) => {
+    if (!step || step === 1) return false;
+    const prevStep = (step - 1) as keyof typeof stepVisibility;
+    const prev = stepVisibility[prevStep];
+    if (type === "concept") return !prev.concepts.includes(id) && visibility?.concepts.includes(id);
+    return !prev.associations.includes(id) && visibility?.associations.includes(id);
+  };
+
+  const getConceptCenter = (id: string) => {
+    const c = concepts.find(c => c.id === id)!;
+    const height = 28 + c.attributes.length * 14 + 8;
+    return { x: c.x + c.width / 2, y: c.y + height / 2 };
+  };
+
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        viewBox="0 0 900 700"
-        className="w-full min-w-[700px] h-auto"
-        style={{ minHeight: "550px" }}
-      >
-        {/* Background */}
-        <rect width="900" height="700" fill="#131318" rx="8" />
+    <div className="w-full">
+      <div className="w-full overflow-x-auto">
+        <svg
+          viewBox="0 0 780 480"
+          className="w-full min-w-[600px] h-auto"
+          style={{ minHeight: "400px" }}
+        >
+          <rect width="780" height="480" fill="#131318" rx="8" />
 
-        {/* Title */}
-        <text x="450" y="35" textAnchor="middle" className="fill-foreground text-base font-semibold">
-          Domain Model: CampusConnect
-        </text>
+          <text x="390" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
+            Domain Model: CampusConnect
+          </text>
 
-        {/* Student Class */}
-        <g transform="translate(50, 80)">
-          <rect width="150" height="120" rx="4" fill="#1e1e26" stroke="#3b82f6" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#3b82f6" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Student</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#3b82f6" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">name: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">gtId: String</text>
-          <text x="10" y="80" className="fill-muted-foreground text-xs">email: String</text>
-          <text x="10" y="95" className="fill-muted-foreground text-xs">major: String</text>
-        </g>
+          {/* Associations */}
+          {associations.map((assoc) => {
+            const from = getConceptCenter(assoc.from);
+            const to = getConceptCenter(assoc.to);
+            const visible = isAssociationVisible(assoc.id);
+            const isNew = isNewlyAdded("association", assoc.id);
+            const midX = (from.x + to.x) / 2;
+            const midY = (from.y + to.y) / 2;
 
-        {/* Organization Class */}
-        <g transform="translate(375, 80)">
-          <rect width="150" height="105" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#22d3ee" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Organization</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#22d3ee" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">name: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">orgId: String</text>
-          <text x="10" y="80" className="fill-muted-foreground text-xs">description: String</text>
-        </g>
+            return (
+              <g
+                key={assoc.id}
+                opacity={visible ? 1 : 0.08}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+              >
+                <line
+                  x1={from.x}
+                  y1={from.y}
+                  x2={to.x}
+                  y2={to.y}
+                  stroke={isNew ? "#22d3ee" : "#71717a"}
+                  strokeWidth={isNew ? 2.5 : 1.5}
+                />
+                <text
+                  x={midX}
+                  y={midY - 6}
+                  textAnchor="middle"
+                  className={`text-xs ${isNew ? "fill-accent font-medium" : "fill-muted-foreground"}`}
+                >
+                  {assoc.label}
+                </text>
+                <text
+                  x={from.x + (to.x - from.x) * 0.15}
+                  y={from.y + (to.y - from.y) * 0.15 - 8}
+                  className="fill-muted-foreground text-xs"
+                >
+                  {assoc.fromMult}
+                </text>
+                <text
+                  x={to.x - (to.x - from.x) * 0.15}
+                  y={to.y - (to.y - from.y) * 0.15 - 8}
+                  className="fill-muted-foreground text-xs"
+                >
+                  {assoc.toMult}
+                </text>
+              </g>
+            );
+          })}
 
-        {/* Event Class */}
-        <g transform="translate(700, 80)">
-          <rect width="150" height="135" rx="4" fill="#1e1e26" stroke="#10b981" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#10b981" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Event</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#10b981" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">title: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">description: String</text>
-          <text x="10" y="80" className="fill-muted-foreground text-xs">date: Date</text>
-          <text x="10" y="95" className="fill-muted-foreground text-xs">location: String</text>
-          <text x="10" y="110" className="fill-muted-foreground text-xs">capacity: Integer</text>
-        </g>
+          {/* Concepts */}
+          {concepts.map((concept) => {
+            const visible = isConceptVisible(concept.id);
+            const isNew = isNewlyAdded("concept", concept.id);
+            const attrHeight = concept.attributes.length * 14 + 8;
+            const totalHeight = 28 + attrHeight;
 
-        {/* MembershipRequest Class */}
-        <g transform="translate(50, 320)">
-          <rect width="150" height="90" rx="4" fill="#1e1e26" stroke="#f59e0b" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#f59e0b" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">MembershipRequest</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#f59e0b" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">requestDate: Date</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">status: String</text>
-        </g>
+            return (
+              <g
+                key={concept.id}
+                transform={`translate(${concept.x}, ${concept.y})`}
+                opacity={visible ? 1 : 0.08}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+              >
+                <rect
+                  width={concept.width}
+                  height={totalHeight}
+                  rx="4"
+                  fill={isNew ? concept.color : "#1e1e26"}
+                  fillOpacity={isNew ? 0.2 : 1}
+                  stroke={concept.color}
+                  strokeWidth={isNew ? 3 : 2}
+                />
+                {/* Header */}
+                <rect width={concept.width} height="26" rx="4" fill={concept.color} fillOpacity="0.2" />
+                <text
+                  x={concept.width / 2}
+                  y="18"
+                  textAnchor="middle"
+                  className="fill-foreground text-xs font-semibold"
+                >
+                  {concept.name}
+                </text>
+                <line x1="0" y1="26" x2={concept.width} y2="26" stroke={concept.color} strokeWidth="1" />
+                {/* Attributes */}
+                {concept.attributes.map((attr, i) => (
+                  <text
+                    key={i}
+                    x="8"
+                    y={42 + i * 14}
+                    className="fill-muted-foreground text-xs"
+                  >
+                    {attr}
+                  </text>
+                ))}
+              </g>
+            );
+          })}
 
-        {/* Membership Class */}
-        <g transform="translate(250, 320)">
-          <rect width="150" height="75" rx="4" fill="#1e1e26" stroke="#8b5cf6" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#8b5cf6" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Membership</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#8b5cf6" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">role: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">joinDate: Date</text>
-        </g>
-
-        {/* RSVP Class */}
-        <g transform="translate(500, 320)">
-          <rect width="150" height="75" rx="4" fill="#1e1e26" stroke="#ec4899" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#ec4899" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">RSVP</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#ec4899" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">rsvpDate: Date</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">status: String</text>
-        </g>
-
-        {/* Associations */}
-        
-        {/* Student - Membership (belongs to via) */}
-        <g>
-          <line x1="125" y1="200" x2="125" y2="320" stroke="#e4e4e7" strokeWidth="1.5" />
-          <line x1="125" y1="280" x2="250" y2="357" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="90" y="260" className="fill-muted-foreground text-xs">1</text>
-          <text x="195" y="330" className="fill-muted-foreground text-xs">*</text>
-          <text x="170" y="295" className="fill-accent text-xs" transform="rotate(-25, 170, 295)">has</text>
-        </g>
-
-        {/* Membership - Organization */}
-        <g>
-          <line x1="325" y1="320" x2="450" y2="185" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="335" y="305" className="fill-muted-foreground text-xs">*</text>
-          <text x="430" y="210" className="fill-muted-foreground text-xs">1</text>
-          <text x="370" y="240" className="fill-accent text-xs" transform="rotate(-45, 370, 240)">belongs to</text>
-        </g>
-
-        {/* Student - MembershipRequest */}
-        <g>
-          <line x1="125" y1="200" x2="125" y2="320" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="105" y="220" className="fill-muted-foreground text-xs">1</text>
-          <text x="105" y="310" className="fill-muted-foreground text-xs">*</text>
-          <text x="135" y="265" className="fill-accent text-xs">submits</text>
-        </g>
-
-        {/* MembershipRequest - Organization */}
-        <g>
-          <line x1="200" y1="365" x2="375" y2="185" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="210" y="355" className="fill-muted-foreground text-xs">*</text>
-          <text x="355" y="200" className="fill-muted-foreground text-xs">1</text>
-          <text x="280" y="275" className="fill-accent text-xs" transform="rotate(-40, 280, 275)">for</text>
-        </g>
-
-        {/* Organization - Event */}
-        <g>
-          <line x1="525" y1="132" x2="700" y2="132" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="540" y="125" className="fill-muted-foreground text-xs">1..*</text>
-          <text x="675" y="125" className="fill-muted-foreground text-xs">*</text>
-          <text x="612" y="122" textAnchor="middle" className="fill-accent text-xs">hosts</text>
-        </g>
-
-        {/* Student - RSVP */}
-        <g>
-          <line x1="200" y1="140" x2="500" y2="357" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="220" y="160" className="fill-muted-foreground text-xs">1</text>
-          <text x="480" y="345" className="fill-muted-foreground text-xs">*</text>
-          <text x="360" y="240" className="fill-accent text-xs" transform="rotate(40, 360, 240)">makes</text>
-        </g>
-
-        {/* RSVP - Event */}
-        <g>
-          <line x1="575" y1="320" x2="775" y2="215" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="590" y="310" className="fill-muted-foreground text-xs">*</text>
-          <text x="755" y="230" className="fill-muted-foreground text-xs">1</text>
-          <text x="670" y="255" className="fill-accent text-xs" transform="rotate(-35, 670, 255)">for</text>
-        </g>
-
-        {/* Student - Organization (president relationship) */}
-        <g>
-          <path d="M 200 140 Q 300 50 375 132" fill="none" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="230" y="125" className="fill-muted-foreground text-xs">0..1</text>
-          <text x="340" y="90" className="fill-muted-foreground text-xs">1</text>
-          <text x="290" y="75" textAnchor="middle" className="fill-accent text-xs">presides over</text>
-        </g>
-
-        {/* Legend */}
-        <g transform="translate(50, 450)">
-          <text x="0" y="0" className="fill-foreground text-sm font-semibold">Multiplicity Guide:</text>
-          <text x="0" y="25" className="fill-muted-foreground text-xs">1 = exactly one</text>
-          <text x="120" y="25" className="fill-muted-foreground text-xs">* = zero or more</text>
-          <text x="240" y="25" className="fill-muted-foreground text-xs">0..1 = zero or one</text>
-          <text x="360" y="25" className="fill-muted-foreground text-xs">1..* = one or more</text>
-        </g>
-
-        {/* Note about constraint */}
-        <g transform="translate(500, 450)">
-          <rect width="350" height="60" rx="4" fill="#27272a" stroke="#71717a" strokeWidth="1" strokeDasharray="4,2" />
-          <text x="175" y="25" textAnchor="middle" className="fill-muted-foreground text-xs">Constraint: A student cannot be president</text>
-          <text x="175" y="45" textAnchor="middle" className="fill-muted-foreground text-xs">of more than one organization at a time.</text>
-        </g>
-
-        {/* Arrow marker definition */}
-        <defs>
-          <marker
-            id="arrowhead-dmd"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="#e4e4e7" />
-          </marker>
-        </defs>
-      </svg>
+          {/* Legend */}
+          <g transform="translate(50, 440)">
+            <text x="0" y="0" className="fill-foreground text-xs font-semibold">Multiplicity:</text>
+            <text x="80" y="0" className="fill-muted-foreground text-xs">1 = exactly one</text>
+            <text x="180" y="0" className="fill-muted-foreground text-xs">* = zero or more</text>
+            <text x="290" y="0" className="fill-muted-foreground text-xs">0..1 = optional</text>
+            <text x="400" y="0" className="fill-muted-foreground text-xs">1..* = one or more</text>
+          </g>
+        </svg>
+      </div>
     </div>
   );
 }

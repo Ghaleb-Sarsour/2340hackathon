@@ -1,204 +1,251 @@
 "use client";
 
-export function SequenceDiagram() {
+interface SequenceDiagramProps {
+  currentStep: number | null;
+}
+
+const lifelines = [
+  { id: "daniel", label: "Daniel", x: 80, color: "#3b82f6", isActor: true },
+  { id: "ui", label: ":UI", x: 180, color: "#22d3ee" },
+  { id: "controller", label: ":EventController", x: 310, color: "#22d3ee" },
+  { id: "org", label: ":Organization", x: 450, color: "#22d3ee" },
+  { id: "event", label: ":Event", x: 570, color: "#22d3ee" },
+  { id: "student", label: ":Student", x: 680, color: "#22d3ee" },
+  { id: "students", label: "Students", x: 800, color: "#3b82f6", isActor: true },
+];
+
+// Map building process steps to what elements should be visible
+const stepVisibility = {
+  1: { lifelines: [], messages: [], fragments: false }, // Just identify scenario
+  2: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [], fragments: false }, // Show participants
+  3: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [], fragments: false }, // Lifelines drawn
+  4: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fragments: false }, // Add messages
+  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fragments: false }, // Activation & returns
+  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fragments: true }, // Add loop fragment
+};
+
+interface Message {
+  id: number;
+  from: string;
+  to: string;
+  label: string;
+  y: number;
+  isReturn?: boolean;
+}
+
+const messages: Message[] = [
+  { id: 1, from: "daniel", to: "ui", label: "navigateToEventPage()", y: 130 },
+  { id: 2, from: "ui", to: "controller", label: "getEventForm()", y: 160 },
+  { id: 3, from: "daniel", to: "ui", label: "enterEventDetails()", y: 200 },
+  { id: 4, from: "ui", to: "controller", label: "createEvent(details)", y: 235 },
+  { id: 5, from: "controller", to: "org", label: "validateOfficer(daniel)", y: 270 },
+  { id: 6, from: "org", to: "controller", label: "isValid", y: 295, isReturn: true },
+  { id: 7, from: "controller", to: "event", label: "new Event(...)", y: 330 },
+  { id: 8, from: "controller", to: "org", label: "addEvent(event)", y: 360 },
+  { id: 9, from: "controller", to: "ui", label: "eventCreated", y: 390, isReturn: true },
+  { id: 10, from: "students", to: "student", label: "viewEvent()", y: 455 },
+  { id: 11, from: "student", to: "event", label: "rsvp(student)", y: 485 },
+  { id: 12, from: "event", to: "event", label: "checkCapacity()", y: 510 },
+  { id: 13, from: "event", to: "student", label: "addAttendee()", y: 555 },
+  { id: 14, from: "student", to: "students", label: "rsvpConfirmed", y: 580, isReturn: true },
+];
+
+export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
+  const step = currentStep as keyof typeof stepVisibility | null;
+  const visibility = step ? stepVisibility[step] : null;
+  const showAll = visibility === null;
+
+  const getLifelineX = (id: string) => lifelines.find(l => l.id === id)?.x || 0;
+
+  const isLifelineVisible = (id: string) => {
+    if (showAll) return true;
+    return visibility?.lifelines.includes(id) ?? false;
+  };
+
+  const isMessageVisible = (id: number) => {
+    if (showAll) return true;
+    return visibility?.messages.includes(id) ?? false;
+  };
+
+  const showFragments = showAll || (visibility?.fragments ?? false);
+
+  // Highlight newly added elements
+  const isNewlyAdded = (type: "lifeline" | "message" | "fragment", id?: string | number) => {
+    if (!step || step === 1) return false;
+    const prevStep = (step - 1) as keyof typeof stepVisibility;
+    const prevVisibility = stepVisibility[prevStep];
+    
+    if (type === "lifeline" && id) {
+      return !prevVisibility.lifelines.includes(id as string) && visibility?.lifelines.includes(id as string);
+    }
+    if (type === "message" && id) {
+      return !prevVisibility.messages.includes(id as number) && visibility?.messages.includes(id as number);
+    }
+    if (type === "fragment") {
+      return !prevVisibility.fragments && visibility?.fragments;
+    }
+    return false;
+  };
+
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        viewBox="0 0 1000 750"
-        className="w-full min-w-[800px] h-auto"
-        style={{ minHeight: "600px" }}
-      >
-        {/* Background */}
-        <rect width="1000" height="750" fill="#131318" rx="8" />
+    <div className="w-full">
+      <div className="w-full overflow-x-auto">
+        <svg
+          viewBox="0 0 900 680"
+          className="w-full min-w-[700px] h-auto"
+          style={{ minHeight: "550px" }}
+        >
+          <rect width="900" height="680" fill="#131318" rx="8" />
 
-        {/* Title */}
-        <text x="500" y="35" textAnchor="middle" className="fill-foreground text-base font-semibold">
-          Sequence Diagram: Event Creation and RSVP (Scenario 2)
-        </text>
+          <text x="450" y="30" textAnchor="middle" className="fill-foreground text-sm font-semibold">
+            Sequence Diagram: Event Creation and RSVP (Scenario 2)
+          </text>
 
-        {/* Lifelines - Actor and Objects */}
-        {/* Daniel (Actor) */}
-        <g>
-          <rect x="50" y="60" width="80" height="40" rx="4" fill="#1e1e26" stroke="#3b82f6" strokeWidth="2" />
-          <text x="90" y="85" textAnchor="middle" className="fill-foreground text-sm">Daniel</text>
-          <line x1="90" y1="100" x2="90" y2="700" stroke="#3b82f6" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
+          {/* Lifelines */}
+          {lifelines.map((lifeline) => {
+            const visible = isLifelineVisible(lifeline.id);
+            const isNew = isNewlyAdded("lifeline", lifeline.id);
+            const boxWidth = lifeline.id === "controller" ? 100 : 70;
 
-        {/* UI */}
-        <g>
-          <rect x="170" y="60" width="80" height="40" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <text x="210" y="85" textAnchor="middle" className="fill-foreground text-sm">:UI</text>
-          <line x1="210" y1="100" x2="210" y2="700" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
+            return (
+              <g
+                key={lifeline.id}
+                opacity={visible ? 1 : 0.1}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+              >
+                <rect
+                  x={lifeline.x - boxWidth / 2}
+                  y="50"
+                  width={boxWidth}
+                  height="36"
+                  rx="4"
+                  fill={isNew ? lifeline.color : "#1e1e26"}
+                  fillOpacity={isNew ? 0.3 : 1}
+                  stroke={lifeline.color}
+                  strokeWidth={isNew ? 3 : 2}
+                />
+                <text
+                  x={lifeline.x}
+                  y="73"
+                  textAnchor="middle"
+                  className="fill-foreground text-xs"
+                >
+                  {lifeline.label}
+                </text>
+                <line
+                  x1={lifeline.x}
+                  y1="86"
+                  x2={lifeline.x}
+                  y2="620"
+                  stroke={lifeline.color}
+                  strokeDasharray="6,4"
+                  strokeWidth="1.5"
+                  opacity={0.7}
+                />
+              </g>
+            );
+          })}
 
-        {/* EventController */}
-        <g>
-          <rect x="290" y="60" width="120" height="40" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <text x="350" y="85" textAnchor="middle" className="fill-foreground text-sm">:EventController</text>
-          <line x1="350" y1="100" x2="350" y2="700" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
+          {/* Messages */}
+          {messages.map((msg) => {
+            const fromX = getLifelineX(msg.from);
+            const toX = getLifelineX(msg.to);
+            const visible = isMessageVisible(msg.id);
+            const isNew = isNewlyAdded("message", msg.id);
+            const isSelfCall = msg.from === msg.to;
 
-        {/* Organization */}
-        <g>
-          <rect x="450" y="60" width="100" height="40" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <text x="500" y="85" textAnchor="middle" className="fill-foreground text-sm">:Organization</text>
-          <line x1="500" y1="100" x2="500" y2="700" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
+            return (
+              <g
+                key={msg.id}
+                opacity={visible ? 1 : 0.08}
+                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+              >
+                {isSelfCall ? (
+                  <>
+                    <path
+                      d={`M ${fromX + 5} ${msg.y} L ${fromX + 35} ${msg.y} L ${fromX + 35} ${msg.y + 20} L ${fromX + 5} ${msg.y + 20}`}
+                      fill="none"
+                      stroke={isNew ? "#22d3ee" : "#e4e4e7"}
+                      strokeWidth={isNew ? 2.5 : 1.5}
+                      markerEnd="url(#arrowhead)"
+                    />
+                    <text
+                      x={fromX + 45}
+                      y={msg.y + 5}
+                      className={`text-xs ${isNew ? "fill-accent" : "fill-muted-foreground"}`}
+                    >
+                      {msg.label}
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    <line
+                      x1={fromX + (fromX < toX ? 5 : -5)}
+                      y1={msg.y}
+                      x2={toX + (fromX < toX ? -5 : 5)}
+                      y2={msg.y}
+                      stroke={isNew ? "#22d3ee" : "#e4e4e7"}
+                      strokeWidth={isNew ? 2.5 : 1.5}
+                      strokeDasharray={msg.isReturn ? "4,2" : "none"}
+                      markerEnd="url(#arrowhead)"
+                    />
+                    <text
+                      x={(fromX + toX) / 2}
+                      y={msg.y - 6}
+                      textAnchor="middle"
+                      className={`text-xs ${isNew ? "fill-accent" : "fill-muted-foreground"}`}
+                    >
+                      {msg.label}
+                    </text>
+                  </>
+                )}
+              </g>
+            );
+          })}
 
-        {/* Event */}
-        <g>
-          <rect x="590" y="60" width="80" height="40" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <text x="630" y="85" textAnchor="middle" className="fill-foreground text-sm">:Event</text>
-          <line x1="630" y1="100" x2="630" y2="700" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
-
-        {/* Student */}
-        <g>
-          <rect x="710" y="60" width="80" height="40" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <text x="750" y="85" textAnchor="middle" className="fill-foreground text-sm">:Student</text>
-          <line x1="750" y1="100" x2="750" y2="700" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
-
-        {/* Students Actor */}
-        <g>
-          <rect x="850" y="60" width="80" height="40" rx="4" fill="#1e1e26" stroke="#3b82f6" strokeWidth="2" />
-          <text x="890" y="85" textAnchor="middle" className="fill-foreground text-sm">Students</text>
-          <line x1="890" y1="100" x2="890" y2="700" stroke="#3b82f6" strokeDasharray="6,4" strokeWidth="1.5" />
-        </g>
-
-        {/* Messages */}
-        {/* 1. Daniel logs in and navigates */}
-        <g>
-          <rect x="85" y="120" width="10" height="40" fill="#3b82f6" opacity="0.5" />
-          <line x1="95" y1="130" x2="205" y2="130" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="150" y="122" textAnchor="middle" className="fill-muted-foreground text-xs">1: navigateToEventPage()</text>
-        </g>
-
-        {/* 2. UI requests event creation form */}
-        <g>
-          <rect x="205" y="150" width="10" height="30" fill="#22d3ee" opacity="0.5" />
-          <line x1="215" y1="160" x2="345" y2="160" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="280" y="152" textAnchor="middle" className="fill-muted-foreground text-xs">2: getEventForm()</text>
-        </g>
-
-        {/* 3. Daniel enters event details */}
-        <g>
-          <rect x="85" y="195" width="10" height="40" fill="#3b82f6" opacity="0.5" />
-          <line x1="95" y1="210" x2="205" y2="210" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="150" y="202" textAnchor="middle" className="fill-muted-foreground text-xs">3: enterEventDetails()</text>
-        </g>
-
-        {/* 4. UI sends create request */}
-        <g>
-          <rect x="205" y="235" width="10" height="50" fill="#22d3ee" opacity="0.5" />
-          <line x1="215" y1="250" x2="345" y2="250" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="280" y="242" textAnchor="middle" className="fill-muted-foreground text-xs">4: createEvent(details)</text>
-        </g>
-
-        {/* 5. Controller validates with organization */}
-        <g>
-          <rect x="345" y="270" width="10" height="40" fill="#22d3ee" opacity="0.5" />
-          <line x1="355" y1="285" x2="495" y2="285" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="425" y="277" textAnchor="middle" className="fill-muted-foreground text-xs">5: validateOfficer(daniel)</text>
-        </g>
-
-        {/* 6. Return validation */}
-        <g>
-          <line x1="495" y1="310" x2="355" y2="310" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" markerEnd="url(#arrowhead)" />
-          <text x="425" y="325" textAnchor="middle" className="fill-muted-foreground text-xs">6: isValid</text>
-        </g>
-
-        {/* 7. Create Event object */}
-        <g>
-          <rect x="345" y="340" width="10" height="40" fill="#22d3ee" opacity="0.5" />
-          <line x1="355" y1="355" x2="625" y2="355" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="490" y="347" textAnchor="middle" className="fill-muted-foreground text-xs">7: new Event(title, desc, date, loc, capacity)</text>
-        </g>
-
-        {/* 8. Add event to org */}
-        <g>
-          <rect x="625" y="370" width="10" height="30" fill="#22d3ee" opacity="0.5" />
-          <line x1="355" y1="385" x2="495" y2="385" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="425" y="377" textAnchor="middle" className="fill-muted-foreground text-xs">8: addEvent(event)</text>
-        </g>
-
-        {/* 9. Confirmation back */}
-        <g>
-          <line x1="345" y1="415" x2="215" y2="415" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" markerEnd="url(#arrowhead)" />
-          <text x="280" y="430" textAnchor="middle" className="fill-muted-foreground text-xs">9: eventCreated</text>
-        </g>
-
-        {/* Loop Fragment for RSVP */}
-        <rect x="40" y="455" width="920" height="200" fill="none" stroke="#71717a" strokeWidth="1.5" rx="4" />
-        <rect x="40" y="455" width="80" height="22" fill="#27272a" stroke="#71717a" strokeWidth="1.5" />
-        <text x="80" y="470" textAnchor="middle" className="fill-muted-foreground text-xs font-semibold">loop</text>
-        <text x="140" y="470" className="fill-muted-foreground text-xs">[for each student until full]</text>
-
-        {/* 10. Student views event */}
-        <g>
-          <rect x="885" y="485" width="10" height="30" fill="#3b82f6" opacity="0.5" />
-          <line x1="885" y1="495" x2="755" y2="495" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="820" y="487" textAnchor="middle" className="fill-muted-foreground text-xs">10: viewEvent()</text>
-        </g>
-
-        {/* 11. RSVP request */}
-        <g>
-          <rect x="745" y="515" width="10" height="40" fill="#22d3ee" opacity="0.5" />
-          <line x1="745" y1="530" x2="635" y2="530" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="690" y="522" textAnchor="middle" className="fill-muted-foreground text-xs">11: rsvp(student)</text>
-        </g>
-
-        {/* 12. Check capacity */}
-        <g>
-          <rect x="625" y="545" width="10" height="30" fill="#22d3ee" opacity="0.5" />
-          <line x1="635" y1="555" x2="670" y2="555" stroke="#e4e4e7" strokeWidth="1.5" />
-          <line x1="670" y1="555" x2="670" y2="570" stroke="#e4e4e7" strokeWidth="1.5" />
-          <line x1="670" y1="570" x2="635" y2="570" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="700" y="562" className="fill-muted-foreground text-xs">12: checkCapacity()</text>
-        </g>
-
-        {/* Alt fragment */}
-        <rect x="580" y="590" width="340" height="55" fill="none" stroke="#71717a" strokeWidth="1" strokeDasharray="4,2" rx="2" />
-        <text x="595" y="605" className="fill-muted-foreground text-xs">[if capacity available]</text>
-
-        {/* 13. Add student to attendees */}
-        <g>
-          <line x1="635" y1="620" x2="745" y2="620" stroke="#e4e4e7" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-          <text x="690" y="612" textAnchor="middle" className="fill-muted-foreground text-xs">13: addAttendee()</text>
-        </g>
-
-        {/* 14. Confirmation */}
-        <g>
-          <line x1="745" y1="640" x2="885" y2="640" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" markerEnd="url(#arrowhead)" />
-          <text x="815" y="655" textAnchor="middle" className="fill-muted-foreground text-xs">14: rsvpConfirmed</text>
-        </g>
-
-        {/* Legend */}
-        <g transform="translate(50, 710)">
-          <rect x="0" y="0" width="12" height="12" fill="#3b82f6" rx="2" />
-          <text x="18" y="10" className="fill-muted-foreground text-xs">Actor</text>
-          <rect x="80" y="0" width="12" height="12" fill="#22d3ee" rx="2" />
-          <text x="98" y="10" className="fill-muted-foreground text-xs">Object</text>
-          <line x1="170" y1="6" x2="200" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="208" y="10" className="fill-muted-foreground text-xs">Message</text>
-          <line x1="280" y1="6" x2="310" y2="6" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" />
-          <text x="318" y="10" className="fill-muted-foreground text-xs">Return</text>
-        </g>
-
-        {/* Arrow marker definition */}
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
+          {/* Loop Fragment */}
+          <g 
+            opacity={showFragments ? 1 : 0.08}
+            className={isNewlyAdded("fragment") ? "animate-pulse" : "transition-opacity duration-500"}
           >
-            <polygon points="0 0, 10 3.5, 0 7" fill="#e4e4e7" />
-          </marker>
-        </defs>
-      </svg>
+            <rect 
+              x="35" y="420" width="830" height="190" 
+              fill="none" 
+              stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
+              strokeWidth={isNewlyAdded("fragment") ? 2.5 : 1.5} 
+              rx="4" 
+            />
+            <rect 
+              x="35" y="420" width="60" height="20" 
+              fill="#27272a" 
+              stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
+              strokeWidth={isNewlyAdded("fragment") ? 2 : 1.5} 
+            />
+            <text x="65" y="434" textAnchor="middle" className="fill-muted-foreground text-xs font-semibold">loop</text>
+            <text x="110" y="434" className="fill-muted-foreground text-xs">[for each student]</text>
+          </g>
+
+          {/* Legend */}
+          <g transform="translate(50, 640)">
+            <rect x="0" y="0" width="12" height="12" fill="#3b82f6" rx="2" />
+            <text x="18" y="10" className="fill-muted-foreground text-xs">Actor</text>
+            <rect x="80" y="0" width="12" height="12" fill="#22d3ee" rx="2" />
+            <text x="98" y="10" className="fill-muted-foreground text-xs">Object</text>
+            <line x1="160" y1="6" x2="190" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
+            <text x="198" y="10" className="fill-muted-foreground text-xs">Message</text>
+            <line x1="270" y1="6" x2="300" y2="6" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" />
+            <text x="308" y="10" className="fill-muted-foreground text-xs">Return</text>
+            <rect x="370" y="0" width="40" height="12" fill="none" stroke="#71717a" strokeWidth="1" rx="2" />
+            <text x="418" y="10" className="fill-muted-foreground text-xs">Fragment</text>
+          </g>
+
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#e4e4e7" />
+            </marker>
+          </defs>
+        </svg>
+      </div>
     </div>
   );
 }

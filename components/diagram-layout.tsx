@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp, Play, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DiagramLayoutProps {
@@ -12,7 +12,7 @@ interface DiagramLayoutProps {
   purpose: React.ReactNode;
   process: { step: number; title: string; description: string }[];
   connections: { name: string; abbr: string; href: string; description: string }[];
-  diagram: React.ReactNode;
+  diagram: React.ReactElement<{ currentStep: number | null }>;
   prevDiagram?: { name: string; href: string };
   nextDiagram?: { name: string; href: string };
 }
@@ -29,12 +29,39 @@ export function DiagramLayout({
   nextDiagram,
 }: DiagramLayoutProps) {
   const [activeTab, setActiveTab] = useState<"purpose" | "process" | "connections">("purpose");
-  const [expandedSteps, setExpandedSteps] = useState<number[]>([1]);
+  const [currentStep, setCurrentStep] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const toggleStep = (step: number) => {
-    setExpandedSteps((prev) =>
-      prev.includes(step) ? prev.filter((s) => s !== step) : [...prev, step]
-    );
+  const handleStepClick = (step: number) => {
+    if (currentStep === step) {
+      setCurrentStep(null);
+    } else {
+      setCurrentStep(step);
+      setActiveTab("process");
+    }
+  };
+
+  const playAllSteps = () => {
+    if (isPlaying) return;
+    setIsPlaying(true);
+    setActiveTab("process");
+    setCurrentStep(1);
+    
+    let step = 1;
+    const interval = setInterval(() => {
+      step++;
+      if (step > process.length) {
+        clearInterval(interval);
+        setIsPlaying(false);
+      } else {
+        setCurrentStep(step);
+      }
+    }, 2000);
+  };
+
+  const resetSteps = () => {
+    setCurrentStep(null);
+    setIsPlaying(false);
   };
 
   return (
@@ -107,39 +134,85 @@ export function DiagramLayout({
 
               {activeTab === "process" && (
                 <div>
-                  <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
-                    <ListChecks className="h-5 w-5 text-emerald-400" />
-                    Building Process
-                  </h2>
-                  <div className="space-y-3">
-                    {process.map((item) => (
-                      <div
-                        key={item.step}
-                        className="border border-border rounded-xl overflow-hidden"
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold">
+                      <ListChecks className="h-5 w-5 text-emerald-400" />
+                      Building Process
+                    </h2>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={playAllSteps}
+                        disabled={isPlaying}
+                        className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                       >
-                        <button
-                          onClick={() => toggleStep(item.step)}
-                          className="w-full flex items-center gap-3 p-4 text-left hover:bg-secondary/50 transition-colors"
-                        >
-                          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10 text-primary text-sm font-semibold">
-                            {item.step}
-                          </span>
-                          <span className="flex-1 font-medium text-sm">{item.title}</span>
-                          {expandedSteps.includes(item.step) ? (
-                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <Play className="h-3 w-3" />
+                        Play
+                      </button>
+                      <button
+                        onClick={resetSteps}
+                        className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Click on a step to see it animate in the diagram
+                  </p>
+                  <div className="space-y-3">
+                    {process.map((item) => {
+                      const isActive = currentStep === item.step;
+                      const isCompleted = currentStep !== null && item.step < currentStep;
+                      
+                      return (
+                        <div
+                          key={item.step}
+                          className={cn(
+                            "border rounded-xl overflow-hidden transition-all duration-300",
+                            isActive 
+                              ? "border-primary bg-primary/10 shadow-lg shadow-primary/20" 
+                              : isCompleted 
+                              ? "border-emerald-500/50 bg-emerald-500/5"
+                              : "border-border"
                           )}
-                        </button>
-                        {expandedSteps.includes(item.step) && (
-                          <div className="px-4 pb-4 pt-0">
-                            <p className="text-sm text-muted-foreground pl-10 leading-relaxed">
-                              {item.description}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        >
+                          <button
+                            onClick={() => handleStepClick(item.step)}
+                            className="w-full flex items-center gap-3 p-4 text-left hover:bg-secondary/50 transition-colors"
+                          >
+                            <span className={cn(
+                              "flex items-center justify-center w-7 h-7 rounded-lg text-sm font-semibold transition-all",
+                              isActive 
+                                ? "bg-primary text-primary-foreground scale-110" 
+                                : isCompleted
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : "bg-primary/10 text-primary"
+                            )}>
+                              {isCompleted ? "✓" : item.step}
+                            </span>
+                            <span className={cn(
+                              "flex-1 font-medium text-sm",
+                              isActive && "text-primary"
+                            )}>
+                              {item.title}
+                            </span>
+                            {isActive ? (
+                              <ChevronUp className="h-4 w-4 text-primary" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                          {isActive && (
+                            <div className="px-4 pb-4 pt-0 animate-in slide-in-from-top-2 duration-200">
+                              <p className="text-sm text-muted-foreground pl-10 leading-relaxed">
+                                {item.description}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -180,12 +253,23 @@ export function DiagramLayout({
           {/* Diagram Display */}
           <div className="lg:col-span-3">
             <div className="sticky top-24">
-              <div className="flex items-center gap-2 mb-4">
-                <BookOpen className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Diagram</h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Diagram</h2>
+                </div>
+                {currentStep !== null && (
+                  <span className="text-sm text-primary font-medium animate-pulse">
+                    Step {currentStep} of {process.length}
+                  </span>
+                )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 overflow-auto">
-                {diagram}
+                {/* Clone the diagram element and pass currentStep prop */}
+                {typeof diagram.type === 'function' 
+                  ? <diagram.type {...diagram.props} currentStep={currentStep} />
+                  : diagram
+                }
               </div>
             </div>
           </div>
