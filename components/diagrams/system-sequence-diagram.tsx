@@ -1,7 +1,7 @@
 "use client";
 
 interface SystemSequenceDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 interface SystemMessage {

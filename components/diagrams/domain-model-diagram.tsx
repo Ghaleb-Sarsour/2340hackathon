@@ -1,7 +1,7 @@
 "use client";
 
 interface DomainModelDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 interface Concept {

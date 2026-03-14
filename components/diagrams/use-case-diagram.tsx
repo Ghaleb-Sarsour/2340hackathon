@@ -1,7 +1,7 @@
 "use client";
 
 interface UseCaseDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 interface Actor {

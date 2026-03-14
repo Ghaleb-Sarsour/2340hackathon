@@ -1,7 +1,7 @@
 "use client";
 
 interface SequenceDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 const lifelines = [

@@ -1,7 +1,7 @@
 "use client";
 
 interface DomainClassDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 interface ClassInfo {

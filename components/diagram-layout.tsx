@@ -12,7 +12,7 @@ interface DiagramLayoutProps {
   purpose: React.ReactNode;
   process: { step: number; title: string; description: string }[];
   connections: { name: string; abbr: string; href: string; description: string }[];
-  diagram: React.ReactElement<{ currentStep: number | null }>;
+  diagram: React.ReactElement<{ currentStep?: number | null }>;
   prevDiagram?: { name: string; href: string };
   nextDiagram?: { name: string; href: string };
 }
