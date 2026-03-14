@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SystemSequenceDiagramProps {
   currentStep?: number | null;
@@ -23,9 +23,9 @@ const messages: SystemMessage[] = [
 
 // Map building process steps to visibility
 const stepVisibility = {
-  1: { actor: false, system: false, messages: [], showResponses: false },
-  2: { actor: true, system: false, messages: [], showResponses: false },
-  3: { actor: true, system: true, messages: [], showResponses: false },
+  1: { actor: false, system: false, messages: [] as number[], showResponses: false },
+  2: { actor: true, system: false, messages: [] as number[], showResponses: false },
+  3: { actor: true, system: true, messages: [] as number[], showResponses: false },
   4: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: false },
   5: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: true },
   6: { actor: true, system: true, messages: [1, 2, 3, 4, 5], showResponses: true },
@@ -36,67 +36,126 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
   const visibility = step ? stepVisibility[step] : null;
   const showAll = visibility === null;
 
-  // Track visible elements with staggered animation
+  // Track visible elements
   const [showActor, setShowActor] = useState(false);
   const [showSystem, setShowSystem] = useState(false);
-  const [visibleMessages, setVisibleMessages] = useState<number[]>([]);
-  const [visibleResponses, setVisibleResponses] = useState<number[]>([]);
+  const [visibleMessages, setVisibleMessages] = useState<Set<number>>(new Set());
+  const [visibleResponses, setVisibleResponses] = useState<Set<number>>(new Set());
+  
+  // Track which elements are currently animating
+  const [animatingActor, setAnimatingActor] = useState(false);
+  const [animatingSystem, setAnimatingSystem] = useState(false);
+  const [animatingMessages, setAnimatingMessages] = useState<Set<number>>(new Set());
+  const [animatingResponses, setAnimatingResponses] = useState<Set<number>>(new Set());
+  
+  // Track previous step
+  const prevStepRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (showAll) {
-      // Show all immediately
+      // Show all immediately without animation
       setShowActor(true);
       setShowSystem(true);
-      setVisibleMessages(messages.map(m => m.id));
-      setVisibleResponses(messages.map(m => m.id));
+      setVisibleMessages(new Set(messages.map(m => m.id)));
+      setVisibleResponses(new Set(messages.map(m => m.id)));
+      setAnimatingActor(false);
+      setAnimatingSystem(false);
+      setAnimatingMessages(new Set());
+      setAnimatingResponses(new Set());
+      prevStepRef.current = null;
       return;
     }
 
     if (!visibility) {
+      // Hide all
       setShowActor(false);
       setShowSystem(false);
-      setVisibleMessages([]);
-      setVisibleResponses([]);
+      setVisibleMessages(new Set());
+      setVisibleResponses(new Set());
+      setAnimatingActor(false);
+      setAnimatingSystem(false);
+      setAnimatingMessages(new Set());
+      setAnimatingResponses(new Set());
+      prevStepRef.current = null;
       return;
     }
 
-    // Reset
-    setShowActor(false);
-    setShowSystem(false);
-    setVisibleMessages([]);
-    setVisibleResponses([]);
+    const prevStep = prevStepRef.current;
+    const prevVisibility = prevStep ? stepVisibility[prevStep as keyof typeof stepVisibility] : null;
+    
+    // Determine what's new in this step
+    const prevActor = prevVisibility?.actor || false;
+    const prevSystem = prevVisibility?.system || false;
+    const prevMessages = new Set(prevVisibility?.messages || []);
+    const prevResponses = prevVisibility?.showResponses ? new Set(prevVisibility.messages) : new Set<number>();
 
-    // Animate actor
-    if (visibility.actor) {
-      setTimeout(() => setShowActor(true), 100);
-    }
+    const newActor = visibility.actor && !prevActor;
+    const newSystem = visibility.system && !prevSystem;
+    const newMessages = visibility.messages.filter(id => !prevMessages.has(id));
+    const newResponses = visibility.showResponses ? visibility.messages.filter(id => !prevResponses.has(id)) : [];
 
-    // Animate system after actor
-    if (visibility.system) {
-      setTimeout(() => setShowSystem(true), 300);
-    }
+    // Set previous state immediately (no animation)
+    setShowActor(prevActor);
+    setShowSystem(prevSystem);
+    setVisibleMessages(new Set(prevVisibility?.messages || []));
+    setVisibleResponses(prevVisibility?.showResponses ? new Set(prevVisibility.messages) : new Set());
+    
+    // Clear animating sets
+    setAnimatingActor(false);
+    setAnimatingSystem(false);
+    setAnimatingMessages(new Set());
+    setAnimatingResponses(new Set());
 
-    // Stagger messages
-    const messageDelay = 500;
-    visibility.messages.forEach((id, index) => {
+    // Animate actor if new
+    if (newActor) {
       setTimeout(() => {
-        setVisibleMessages(prev => [...prev, id]);
-      }, messageDelay + index * 150);
+        setAnimatingActor(true);
+        setShowActor(true);
+      }, 100);
+      setTimeout(() => setAnimatingActor(false), 600);
+    }
+
+    // Animate system if new
+    if (newSystem) {
+      setTimeout(() => {
+        setAnimatingSystem(true);
+        setShowSystem(true);
+      }, newActor ? 300 : 100);
+      setTimeout(() => setAnimatingSystem(false), newActor ? 800 : 600);
+    }
+
+    // Stagger new messages
+    const messageDelay = (newActor ? 300 : 0) + (newSystem ? 300 : 0) + 200;
+    newMessages.forEach((id, index) => {
+      setTimeout(() => {
+        setAnimatingMessages(prev => new Set([...prev, id]));
+        setVisibleMessages(prev => new Set([...prev, id]));
+      }, messageDelay + index * 180);
     });
 
-    // Stagger responses after messages
-    if (visibility.showResponses) {
-      const responseDelay = messageDelay + visibility.messages.length * 150 + 200;
-      visibility.messages.forEach((id, index) => {
-        setTimeout(() => {
-          setVisibleResponses(prev => [...prev, id]);
-        }, responseDelay + index * 100);
-      });
-    }
-  }, [step, showAll, visibility]);
+    // Remove message animation class after animation completes
+    setTimeout(() => {
+      setAnimatingMessages(new Set());
+    }, messageDelay + newMessages.length * 180 + 700);
 
-  const isMessageVisible = (id: number) => visibleMessages.includes(id);
-  const isResponseVisible = (id: number) => visibleResponses.includes(id);
+    // Stagger new responses after messages
+    if (newResponses.length > 0) {
+      const responseDelay = messageDelay + newMessages.length * 180 + 300;
+      newResponses.forEach((id, index) => {
+        setTimeout(() => {
+          setAnimatingResponses(prev => new Set([...prev, id]));
+          setVisibleResponses(prev => new Set([...prev, id]));
+        }, responseDelay + index * 150);
+      });
+
+      // Remove response animation class after animation completes
+      setTimeout(() => {
+        setAnimatingResponses(new Set());
+      }, responseDelay + newResponses.length * 150 + 700);
+    }
+
+    prevStepRef.current = step;
+  }, [step, showAll, visibility]);
 
   return (
     <div className="w-full">
@@ -104,7 +163,7 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
         @keyframes fadeSlideIn {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-15px);
           }
           to {
             opacity: 1;
@@ -119,12 +178,23 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
             stroke-dashoffset: 0;
           }
         }
-        .animate-fade-in {
-          animation: fadeSlideIn 0.4s ease-out forwards;
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fade-slide {
+          animation: fadeSlideIn 0.5s ease-out forwards;
         }
         .animate-draw {
           stroke-dasharray: 500;
           animation: drawLine 0.6s ease-out forwards;
+        }
+        .animate-fade {
+          animation: fadeIn 0.4s ease-out forwards;
         }
       `}</style>
       <div className="w-full overflow-x-auto">
@@ -140,84 +210,87 @@ export function SystemSequenceDiagram({ currentStep }: SystemSequenceDiagramProp
           </text>
 
           {/* Actor - Priya */}
-          <g
-            style={{ opacity: showActor ? 1 : 0.08 }}
-            className={showActor ? "animate-fade-in" : ""}
-          >
-            <circle 
-              cx="100" cy="70" r="15" 
-              fill="none"
-              stroke="#3b82f6" 
-              strokeWidth="2"
-            />
-            <line x1="100" y1="85" x2="100" y2="115" stroke="#3b82f6" strokeWidth="2" />
-            <line x1="80" y1="95" x2="120" y2="95" stroke="#3b82f6" strokeWidth="2" />
-            <line x1="100" y1="115" x2="80" y2="140" stroke="#3b82f6" strokeWidth="2" />
-            <line x1="100" y1="115" x2="120" y2="140" stroke="#3b82f6" strokeWidth="2" />
-            <text x="100" y="158" textAnchor="middle" className="fill-foreground text-sm">Priya</text>
-            <line x1="100" y1="165" x2="100" y2="500" stroke="#3b82f6" strokeDasharray="6,4" strokeWidth="1.5" />
-          </g>
+          {showActor && (
+            <g className={animatingActor ? "animate-fade-slide" : ""}>
+              <circle 
+                cx="100" cy="70" r="15" 
+                fill="none"
+                stroke="#3b82f6" 
+                strokeWidth="2"
+              />
+              <line x1="100" y1="85" x2="100" y2="115" stroke="#3b82f6" strokeWidth="2" />
+              <line x1="80" y1="95" x2="120" y2="95" stroke="#3b82f6" strokeWidth="2" />
+              <line x1="100" y1="115" x2="80" y2="140" stroke="#3b82f6" strokeWidth="2" />
+              <line x1="100" y1="115" x2="120" y2="140" stroke="#3b82f6" strokeWidth="2" />
+              <text x="100" y="158" textAnchor="middle" className="fill-foreground text-sm">Priya</text>
+              <line x1="100" y1="165" x2="100" y2="500" stroke="#3b82f6" strokeDasharray="6,4" strokeWidth="1.5" />
+            </g>
+          )}
 
           {/* System - CampusConnect */}
-          <g
-            style={{ opacity: showSystem ? 1 : 0.08 }}
-            className={showSystem ? "animate-fade-in" : ""}
-          >
-            <rect 
-              x="450" y="60" width="130" height="45" rx="4" 
-              fill="#1e1e26"
-              stroke="#22d3ee" 
-              strokeWidth="2"
-            />
-            <text x="515" y="87" textAnchor="middle" className="fill-foreground text-sm">:CampusConnect</text>
-            <line x1="515" y1="105" x2="515" y2="500" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
-          </g>
+          {showSystem && (
+            <g className={animatingSystem ? "animate-fade-slide" : ""}>
+              <rect 
+                x="450" y="60" width="130" height="45" rx="4" 
+                fill="#1e1e26"
+                stroke="#22d3ee" 
+                strokeWidth="2"
+              />
+              <text x="515" y="87" textAnchor="middle" className="fill-foreground text-sm">:CampusConnect</text>
+              <line x1="515" y1="105" x2="515" y2="500" stroke="#22d3ee" strokeDasharray="6,4" strokeWidth="1.5" />
+            </g>
+          )}
 
           {/* Messages */}
           {messages.map((msg) => {
-            const msgVisible = isMessageVisible(msg.id);
-            const respVisible = isResponseVisible(msg.id);
+            const msgVisible = visibleMessages.has(msg.id);
+            const respVisible = visibleResponses.has(msg.id);
+            const msgAnimating = animatingMessages.has(msg.id);
+            const respAnimating = animatingResponses.has(msg.id);
 
             return (
               <g key={msg.id}>
                 {/* Request arrow */}
-                <g style={{ opacity: msgVisible ? 1 : 0.05 }}>
-                  <line 
-                    x1="105" y1={msg.y} x2="510" y2={msg.y} 
-                    stroke="#e4e4e7"
-                    strokeWidth="1.5"
-                    markerEnd="url(#arrowhead-ssd)"
-                    className={msgVisible ? "animate-draw" : ""}
-                  />
-                  <text 
-                    x="307" y={msg.y - 8} 
-                    textAnchor="middle" 
-                    className={`text-sm fill-foreground ${msgVisible ? "animate-fade-in" : ""}`}
-                    style={{ opacity: msgVisible ? 1 : 0 }}
-                  >
-                    {msg.id}: {msg.label}
-                  </text>
-                </g>
+                {msgVisible && (
+                  <g>
+                    <line 
+                      x1="105" y1={msg.y} x2="510" y2={msg.y} 
+                      stroke="#e4e4e7"
+                      strokeWidth="1.5"
+                      strokeDasharray={msgAnimating ? "500" : "none"}
+                      markerEnd="url(#arrowhead-ssd)"
+                      className={msgAnimating ? "animate-draw" : ""}
+                    />
+                    <text 
+                      x="307" y={msg.y - 8} 
+                      textAnchor="middle" 
+                      className={`text-sm fill-foreground ${msgAnimating ? "animate-fade" : ""}`}
+                    >
+                      {msg.id}: {msg.label}
+                    </text>
+                  </g>
+                )}
 
                 {/* Response arrow */}
-                <g style={{ opacity: respVisible ? 1 : 0.05 }}>
-                  <line 
-                    x1="510" y1={msg.y + 25} x2="105" y2={msg.y + 25} 
-                    stroke="#e4e4e7"
-                    strokeWidth="1.5"
-                    strokeDasharray="4,2" 
-                    markerEnd="url(#arrowhead-ssd)"
-                    className={respVisible ? "animate-draw" : ""}
-                  />
-                  <text 
-                    x="307" y={msg.y + 42} 
-                    textAnchor="middle" 
-                    className={`text-xs fill-muted-foreground ${respVisible ? "animate-fade-in" : ""}`}
-                    style={{ opacity: respVisible ? 1 : 0 }}
-                  >
-                    {msg.response}
-                  </text>
-                </g>
+                {respVisible && (
+                  <g>
+                    <line 
+                      x1="510" y1={msg.y + 25} x2="105" y2={msg.y + 25} 
+                      stroke="#e4e4e7"
+                      strokeWidth="1.5"
+                      strokeDasharray={respAnimating ? "500" : "4,2"}
+                      markerEnd="url(#arrowhead-ssd)"
+                      className={respAnimating ? "animate-draw" : ""}
+                    />
+                    <text 
+                      x="307" y={msg.y + 42} 
+                      textAnchor="middle" 
+                      className={`text-xs fill-muted-foreground ${respAnimating ? "animate-fade" : ""}`}
+                    >
+                      {msg.response}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
