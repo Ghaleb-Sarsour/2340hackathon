@@ -1,184 +1,335 @@
 "use client";
 
+import { useState } from "react";
+
+interface Concept {
+  id: string;
+  name: string;
+  attributes: string[];
+  description: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+}
+
+interface Association {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+  fromMultiplicity: string;
+  toMultiplicity: string;
+  description: string;
+}
+
+const concepts: Concept[] = [
+  { 
+    id: "student", 
+    name: "Student", 
+    attributes: ["name: String", "gtId: String", "email: String", "major: String"],
+    description: "A GT student who can join organizations, attend events, and potentially lead organizations as president.",
+    x: 50, y: 80, width: 150, height: 120, color: "#3b82f6"
+  },
+  { 
+    id: "organization", 
+    name: "Organization", 
+    attributes: ["name: String", "orgId: String", "description: String"],
+    description: "A campus organization that students can join. Has a president and can host events.",
+    x: 375, y: 80, width: 150, height: 105, color: "#22d3ee"
+  },
+  { 
+    id: "event", 
+    name: "Event", 
+    attributes: ["title: String", "description: String", "date: Date", "location: String", "capacity: Integer"],
+    description: "An event hosted by an organization that students can RSVP to attend.",
+    x: 700, y: 80, width: 150, height: 135, color: "#10b981"
+  },
+  { 
+    id: "membershipRequest", 
+    name: "MembershipRequest", 
+    attributes: ["requestDate: Date", "status: String"],
+    description: "A pending request from a student to join an organization. Can be approved or rejected.",
+    x: 50, y: 320, width: 150, height: 90, color: "#f59e0b"
+  },
+  { 
+    id: "membership", 
+    name: "Membership", 
+    attributes: ["role: String", "joinDate: Date"],
+    description: "Represents a student's membership in an organization with their role (member, officer, etc.).",
+    x: 250, y: 320, width: 150, height: 75, color: "#8b5cf6"
+  },
+  { 
+    id: "rsvp", 
+    name: "RSVP", 
+    attributes: ["rsvpDate: Date", "status: String"],
+    description: "A student's registration to attend a specific event. Tracks attendance commitment.",
+    x: 500, y: 320, width: 150, height: 75, color: "#ec4899"
+  },
+];
+
+const associations: Association[] = [
+  { id: "student-membership", from: "student", to: "membership", label: "has", fromMultiplicity: "1", toMultiplicity: "*", description: "A student can have multiple memberships in different organizations" },
+  { id: "membership-org", from: "membership", to: "organization", label: "belongs to", fromMultiplicity: "*", toMultiplicity: "1", description: "Each membership belongs to exactly one organization" },
+  { id: "student-request", from: "student", to: "membershipRequest", label: "submits", fromMultiplicity: "1", toMultiplicity: "*", description: "A student can submit multiple membership requests" },
+  { id: "request-org", from: "membershipRequest", to: "organization", label: "for", fromMultiplicity: "*", toMultiplicity: "1", description: "Each request is for joining a specific organization" },
+  { id: "org-event", from: "organization", to: "event", label: "hosts", fromMultiplicity: "1..*", toMultiplicity: "*", description: "Organizations can host multiple events" },
+  { id: "student-rsvp", from: "student", to: "rsvp", label: "makes", fromMultiplicity: "1", toMultiplicity: "*", description: "A student can RSVP to multiple events" },
+  { id: "rsvp-event", from: "rsvp", to: "event", label: "for", fromMultiplicity: "*", toMultiplicity: "1", description: "Each RSVP is for a specific event" },
+  { id: "student-president", from: "student", to: "organization", label: "presides over", fromMultiplicity: "0..1", toMultiplicity: "1", description: "A student can be president of at most one organization" },
+];
+
 export function DomainModelDiagram() {
+  const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
+  const [selectedAssociation, setSelectedAssociation] = useState<string | null>(null);
+  const [highlightMode, setHighlightMode] = useState<"none" | "student" | "organization" | "event">("none");
+
+  const getHighlightedConcepts = () => {
+    switch (highlightMode) {
+      case "student":
+        return ["student", "membership", "membershipRequest", "rsvp"];
+      case "organization":
+        return ["organization", "membership", "membershipRequest", "event"];
+      case "event":
+        return ["event", "rsvp", "organization"];
+      default:
+        return [];
+    }
+  };
+
+  const highlightedConcepts = getHighlightedConcepts();
+
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        viewBox="0 0 900 700"
-        className="w-full min-w-[700px] h-auto"
-        style={{ minHeight: "550px" }}
-      >
-        {/* Background */}
-        <rect width="900" height="700" fill="#131318" rx="8" />
+    <div className="w-full space-y-4">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-card p-4 border border-border">
+        <span className="text-sm text-muted-foreground">Highlight relationships:</span>
+        <div className="flex gap-2">
+          {[
+            { value: "none", label: "All", color: "bg-muted" },
+            { value: "student", label: "Student-centric", color: "bg-blue-500" },
+            { value: "organization", label: "Org-centric", color: "bg-cyan-500" },
+            { value: "event", label: "Event-centric", color: "bg-emerald-500" },
+          ].map((mode) => (
+            <button
+              key={mode.value}
+              onClick={() => setHighlightMode(mode.value as typeof highlightMode)}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                highlightMode === mode.value 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${mode.color}`} />
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Title */}
-        <text x="450" y="35" textAnchor="middle" className="fill-foreground text-base font-semibold">
-          Domain Model: CampusConnect
-        </text>
+      {/* Info Panel */}
+      {(selectedConcept || selectedAssociation) && (
+        <div className="rounded-lg bg-accent/50 border border-accent p-4 transition-all">
+          {selectedConcept && (
+            <div>
+              <h4 className="font-semibold text-foreground mb-1">
+                {concepts.find(c => c.id === selectedConcept)?.name}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {concepts.find(c => c.id === selectedConcept)?.description}
+              </p>
+            </div>
+          )}
+          {selectedAssociation && (
+            <div>
+              <h4 className="font-semibold text-foreground mb-1">
+                Association: {associations.find(a => a.id === selectedAssociation)?.label}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {associations.find(a => a.id === selectedAssociation)?.description}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Student Class */}
-        <g transform="translate(50, 80)">
-          <rect width="150" height="120" rx="4" fill="#1e1e26" stroke="#3b82f6" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#3b82f6" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Student</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#3b82f6" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">name: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">gtId: String</text>
-          <text x="10" y="80" className="fill-muted-foreground text-xs">email: String</text>
-          <text x="10" y="95" className="fill-muted-foreground text-xs">major: String</text>
-        </g>
+      {/* Diagram */}
+      <div className="w-full overflow-x-auto">
+        <svg
+          viewBox="0 0 900 550"
+          className="w-full min-w-[700px] h-auto"
+          style={{ minHeight: "450px" }}
+        >
+          <rect width="900" height="550" fill="#131318" rx="8" />
 
-        {/* Organization Class */}
-        <g transform="translate(375, 80)">
-          <rect width="150" height="105" rx="4" fill="#1e1e26" stroke="#22d3ee" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#22d3ee" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Organization</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#22d3ee" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">name: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">orgId: String</text>
-          <text x="10" y="80" className="fill-muted-foreground text-xs">description: String</text>
-        </g>
+          <text x="450" y="35" textAnchor="middle" className="fill-foreground text-base font-semibold">
+            Domain Model: CampusConnect
+          </text>
 
-        {/* Event Class */}
-        <g transform="translate(700, 80)">
-          <rect width="150" height="135" rx="4" fill="#1e1e26" stroke="#10b981" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#10b981" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Event</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#10b981" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">title: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">description: String</text>
-          <text x="10" y="80" className="fill-muted-foreground text-xs">date: Date</text>
-          <text x="10" y="95" className="fill-muted-foreground text-xs">location: String</text>
-          <text x="10" y="110" className="fill-muted-foreground text-xs">capacity: Integer</text>
-        </g>
+          {/* Associations (draw first so they're behind) */}
+          {associations.map((assoc) => {
+            const fromConcept = concepts.find(c => c.id === assoc.from)!;
+            const toConcept = concepts.find(c => c.id === assoc.to)!;
+            const isHighlighted = highlightMode === "none" || 
+              (highlightedConcepts.includes(assoc.from) && highlightedConcepts.includes(assoc.to));
+            const isSelected = selectedAssociation === assoc.id;
 
-        {/* MembershipRequest Class */}
-        <g transform="translate(50, 320)">
-          <rect width="150" height="90" rx="4" fill="#1e1e26" stroke="#f59e0b" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#f59e0b" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">MembershipRequest</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#f59e0b" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">requestDate: Date</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">status: String</text>
-        </g>
+            // Calculate line positions based on concept positions
+            let x1 = fromConcept.x + fromConcept.width / 2;
+            let y1 = fromConcept.y + fromConcept.height / 2;
+            let x2 = toConcept.x + toConcept.width / 2;
+            let y2 = toConcept.y + toConcept.height / 2;
 
-        {/* Membership Class */}
-        <g transform="translate(250, 320)">
-          <rect width="150" height="75" rx="4" fill="#1e1e26" stroke="#8b5cf6" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#8b5cf6" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">Membership</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#8b5cf6" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">role: String</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">joinDate: Date</text>
-        </g>
+            // Curved path for president relationship
+            if (assoc.id === "student-president") {
+              return (
+                <g
+                  key={assoc.id}
+                  onMouseEnter={() => setSelectedAssociation(assoc.id)}
+                  onMouseLeave={() => setSelectedAssociation(null)}
+                  className="cursor-pointer"
+                  opacity={isHighlighted ? 1 : 0.2}
+                >
+                  <path
+                    d={`M ${fromConcept.x + fromConcept.width} ${fromConcept.y + 30} Q ${300} ${50} ${toConcept.x} ${toConcept.y + 30}`}
+                    fill="none"
+                    stroke={isSelected ? "#22d3ee" : "#e4e4e7"}
+                    strokeWidth={isSelected ? 2.5 : 1.5}
+                    className="transition-all duration-200"
+                  />
+                  <text x="290" y="55" textAnchor="middle" className="fill-accent text-xs">{assoc.label}</text>
+                  <text x="220" y="90" className="fill-muted-foreground text-xs">{assoc.fromMultiplicity}</text>
+                  <text x="360" y="75" className="fill-muted-foreground text-xs">{assoc.toMultiplicity}</text>
+                </g>
+              );
+            }
 
-        {/* RSVP Class */}
-        <g transform="translate(500, 320)">
-          <rect width="150" height="75" rx="4" fill="#1e1e26" stroke="#ec4899" strokeWidth="2" />
-          <rect width="150" height="30" rx="4" fill="#ec4899" fillOpacity="0.2" />
-          <text x="75" y="20" textAnchor="middle" className="fill-foreground text-sm font-semibold">RSVP</text>
-          <line x1="0" y1="30" x2="150" y2="30" stroke="#ec4899" strokeWidth="1" />
-          <text x="10" y="50" className="fill-muted-foreground text-xs">rsvpDate: Date</text>
-          <text x="10" y="65" className="fill-muted-foreground text-xs">status: String</text>
-        </g>
+            return (
+              <g
+                key={assoc.id}
+                onMouseEnter={() => setSelectedAssociation(assoc.id)}
+                onMouseLeave={() => setSelectedAssociation(null)}
+                className="cursor-pointer"
+                opacity={isHighlighted ? 1 : 0.2}
+              >
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={isSelected ? "#22d3ee" : "#e4e4e7"}
+                  strokeWidth={isSelected ? 2.5 : 1.5}
+                  className="transition-all duration-200"
+                />
+                {/* Label */}
+                <text
+                  x={(x1 + x2) / 2}
+                  y={(y1 + y2) / 2 - 8}
+                  textAnchor="middle"
+                  className="fill-accent text-xs"
+                >
+                  {assoc.label}
+                </text>
+                {/* Multiplicities */}
+                <text
+                  x={x1 + (x2 - x1) * 0.15}
+                  y={y1 + (y2 - y1) * 0.15 - 5}
+                  className="fill-muted-foreground text-xs"
+                >
+                  {assoc.fromMultiplicity}
+                </text>
+                <text
+                  x={x2 - (x2 - x1) * 0.15}
+                  y={y2 - (y2 - y1) * 0.15 - 5}
+                  className="fill-muted-foreground text-xs"
+                >
+                  {assoc.toMultiplicity}
+                </text>
+              </g>
+            );
+          })}
 
-        {/* Associations */}
-        
-        {/* Student - Membership (belongs to via) */}
-        <g>
-          <line x1="125" y1="200" x2="125" y2="320" stroke="#e4e4e7" strokeWidth="1.5" />
-          <line x1="125" y1="280" x2="250" y2="357" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="90" y="260" className="fill-muted-foreground text-xs">1</text>
-          <text x="195" y="330" className="fill-muted-foreground text-xs">*</text>
-          <text x="170" y="295" className="fill-accent text-xs" transform="rotate(-25, 170, 295)">has</text>
-        </g>
+          {/* Concepts */}
+          {concepts.map((concept) => {
+            const isHighlighted = highlightMode === "none" || highlightedConcepts.includes(concept.id);
+            const isSelected = selectedConcept === concept.id;
 
-        {/* Membership - Organization */}
-        <g>
-          <line x1="325" y1="320" x2="450" y2="185" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="335" y="305" className="fill-muted-foreground text-xs">*</text>
-          <text x="430" y="210" className="fill-muted-foreground text-xs">1</text>
-          <text x="370" y="240" className="fill-accent text-xs" transform="rotate(-45, 370, 240)">belongs to</text>
-        </g>
+            return (
+              <g
+                key={concept.id}
+                transform={`translate(${concept.x}, ${concept.y})`}
+                onMouseEnter={() => setSelectedConcept(concept.id)}
+                onMouseLeave={() => setSelectedConcept(null)}
+                className="cursor-pointer"
+                opacity={isHighlighted ? 1 : 0.3}
+              >
+                {/* Card background */}
+                <rect
+                  width={concept.width}
+                  height={concept.height}
+                  rx="4"
+                  fill={isSelected ? concept.color : "#1e1e26"}
+                  fillOpacity={isSelected ? 0.2 : 1}
+                  stroke={concept.color}
+                  strokeWidth={isSelected ? 3 : 2}
+                  className="transition-all duration-200"
+                />
+                {/* Header */}
+                <rect
+                  width={concept.width}
+                  height="30"
+                  rx="4"
+                  fill={concept.color}
+                  fillOpacity="0.2"
+                />
+                <text
+                  x={concept.width / 2}
+                  y="20"
+                  textAnchor="middle"
+                  className="fill-foreground text-sm font-semibold pointer-events-none"
+                >
+                  {concept.name}
+                </text>
+                {/* Divider */}
+                <line x1="0" y1="30" x2={concept.width} y2="30" stroke={concept.color} strokeWidth="1" />
+                {/* Attributes */}
+                {concept.attributes.map((attr, i) => (
+                  <text
+                    key={i}
+                    x="10"
+                    y={50 + i * 15}
+                    className="fill-muted-foreground text-xs pointer-events-none"
+                  >
+                    {attr}
+                  </text>
+                ))}
+              </g>
+            );
+          })}
 
-        {/* Student - MembershipRequest */}
-        <g>
-          <line x1="125" y1="200" x2="125" y2="320" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="105" y="220" className="fill-muted-foreground text-xs">1</text>
-          <text x="105" y="310" className="fill-muted-foreground text-xs">*</text>
-          <text x="135" y="265" className="fill-accent text-xs">submits</text>
-        </g>
+          {/* Legend */}
+          <g transform="translate(50, 470)">
+            <text x="0" y="0" className="fill-foreground text-sm font-semibold">Multiplicity:</text>
+            <text x="0" y="20" className="fill-muted-foreground text-xs">1 = exactly one</text>
+            <text x="120" y="20" className="fill-muted-foreground text-xs">* = zero or more</text>
+            <text x="240" y="20" className="fill-muted-foreground text-xs">0..1 = zero or one</text>
+            <text x="360" y="20" className="fill-muted-foreground text-xs">1..* = one or more</text>
+          </g>
 
-        {/* MembershipRequest - Organization */}
-        <g>
-          <line x1="200" y1="365" x2="375" y2="185" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="210" y="355" className="fill-muted-foreground text-xs">*</text>
-          <text x="355" y="200" className="fill-muted-foreground text-xs">1</text>
-          <text x="280" y="275" className="fill-accent text-xs" transform="rotate(-40, 280, 275)">for</text>
-        </g>
+          {/* Constraint note */}
+          <g transform="translate(550, 455)">
+            <rect width="300" height="50" rx="4" fill="#27272a" stroke="#71717a" strokeWidth="1" strokeDasharray="4,2" />
+            <text x="150" y="22" textAnchor="middle" className="fill-muted-foreground text-xs">Constraint: A student cannot be president</text>
+            <text x="150" y="38" textAnchor="middle" className="fill-muted-foreground text-xs">of more than one organization at a time.</text>
+          </g>
 
-        {/* Organization - Event */}
-        <g>
-          <line x1="525" y1="132" x2="700" y2="132" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="540" y="125" className="fill-muted-foreground text-xs">1..*</text>
-          <text x="675" y="125" className="fill-muted-foreground text-xs">*</text>
-          <text x="612" y="122" textAnchor="middle" className="fill-accent text-xs">hosts</text>
-        </g>
-
-        {/* Student - RSVP */}
-        <g>
-          <line x1="200" y1="140" x2="500" y2="357" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="220" y="160" className="fill-muted-foreground text-xs">1</text>
-          <text x="480" y="345" className="fill-muted-foreground text-xs">*</text>
-          <text x="360" y="240" className="fill-accent text-xs" transform="rotate(40, 360, 240)">makes</text>
-        </g>
-
-        {/* RSVP - Event */}
-        <g>
-          <line x1="575" y1="320" x2="775" y2="215" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="590" y="310" className="fill-muted-foreground text-xs">*</text>
-          <text x="755" y="230" className="fill-muted-foreground text-xs">1</text>
-          <text x="670" y="255" className="fill-accent text-xs" transform="rotate(-35, 670, 255)">for</text>
-        </g>
-
-        {/* Student - Organization (president relationship) */}
-        <g>
-          <path d="M 200 140 Q 300 50 375 132" fill="none" stroke="#e4e4e7" strokeWidth="1.5" />
-          <text x="230" y="125" className="fill-muted-foreground text-xs">0..1</text>
-          <text x="340" y="90" className="fill-muted-foreground text-xs">1</text>
-          <text x="290" y="75" textAnchor="middle" className="fill-accent text-xs">presides over</text>
-        </g>
-
-        {/* Legend */}
-        <g transform="translate(50, 450)">
-          <text x="0" y="0" className="fill-foreground text-sm font-semibold">Multiplicity Guide:</text>
-          <text x="0" y="25" className="fill-muted-foreground text-xs">1 = exactly one</text>
-          <text x="120" y="25" className="fill-muted-foreground text-xs">* = zero or more</text>
-          <text x="240" y="25" className="fill-muted-foreground text-xs">0..1 = zero or one</text>
-          <text x="360" y="25" className="fill-muted-foreground text-xs">1..* = one or more</text>
-        </g>
-
-        {/* Note about constraint */}
-        <g transform="translate(500, 450)">
-          <rect width="350" height="60" rx="4" fill="#27272a" stroke="#71717a" strokeWidth="1" strokeDasharray="4,2" />
-          <text x="175" y="25" textAnchor="middle" className="fill-muted-foreground text-xs">Constraint: A student cannot be president</text>
-          <text x="175" y="45" textAnchor="middle" className="fill-muted-foreground text-xs">of more than one organization at a time.</text>
-        </g>
-
-        {/* Arrow marker definition */}
-        <defs>
-          <marker
-            id="arrowhead-dmd"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="#e4e4e7" />
-          </marker>
-        </defs>
-      </svg>
+          {/* Interactive hint */}
+          <text x="450" y="540" textAnchor="middle" className="fill-accent text-xs">
+            Click on concepts and associations to learn more!
+          </text>
+        </svg>
+      </div>
     </div>
   );
 }
