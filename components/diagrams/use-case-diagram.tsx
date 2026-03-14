@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef, useEffect, useState } from "react";
+
 interface UseCaseDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 interface Actor {
@@ -61,36 +63,61 @@ const associations: Association[] = [
 
 // Map building process steps
 const stepVisibility = {
-  1: { actors: [], useCases: [], associations: false, boundary: false }, // Identify actors
-  2: { actors: ["student", "president", "officer"], useCases: [], associations: false, boundary: false }, // Draw actors
-  3: { actors: ["student", "president", "officer"], useCases: [], associations: false, boundary: true }, // System boundary
-  4: { actors: ["student", "president", "officer"], useCases: ["login", "searchOrg", "requestMembership", "viewOrgs", "viewEvents", "rsvpEvent", "approveReject", "createEvent", "manageEvent"], associations: false, boundary: true }, // Add use cases
-  5: { actors: ["student", "president", "officer", "authSystem"], useCases: ["login", "searchOrg", "requestMembership", "viewOrgs", "viewEvents", "rsvpEvent", "approveReject", "createEvent", "manageEvent"], associations: true, boundary: true }, // Add associations
-  6: { actors: ["student", "president", "officer", "authSystem"], useCases: ["login", "searchOrg", "requestMembership", "viewOrgs", "viewEvents", "rsvpEvent", "approveReject", "createEvent", "manageEvent"], associations: true, boundary: true, showRelations: true }, // Include/extend
+  1: { actors: [], useCases: [], associations: false, boundary: false, showRelations: false },
+  2: { actors: ["student", "president", "officer"], useCases: [], associations: false, boundary: false, showRelations: false },
+  3: { actors: ["student", "president", "officer"], useCases: [], associations: false, boundary: true, showRelations: false },
+  4: { actors: ["student", "president", "officer"], useCases: ["login", "searchOrg", "requestMembership", "viewOrgs", "viewEvents", "rsvpEvent", "approveReject", "createEvent", "manageEvent"], associations: false, boundary: true, showRelations: false },
+  5: { actors: ["student", "president", "officer", "authSystem"], useCases: ["login", "searchOrg", "requestMembership", "viewOrgs", "viewEvents", "rsvpEvent", "approveReject", "createEvent", "manageEvent"], associations: true, boundary: true, showRelations: false },
+  6: { actors: ["student", "president", "officer", "authSystem"], useCases: ["login", "searchOrg", "requestMembership", "viewOrgs", "viewEvents", "rsvpEvent", "approveReject", "createEvent", "manageEvent"], associations: true, boundary: true, showRelations: true },
 };
 
 export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
   const step = currentStep as keyof typeof stepVisibility | null;
   const visibility = step ? stepVisibility[step] : null;
   const showAll = visibility === null;
+  const prevStepRef = useRef<number | null>(null);
+  const [animatingElements, setAnimatingElements] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (step === null) {
+      setAnimatingElements(new Set());
+      prevStepRef.current = null;
+      return;
+    }
+
+    const prevStep = prevStepRef.current;
+    const newAnimating = new Set<string>();
+
+    if (prevStep === null || step > prevStep) {
+      const current = stepVisibility[step];
+      const prev = prevStep ? stepVisibility[prevStep as keyof typeof stepVisibility] : { actors: [], useCases: [], associations: false, boundary: false, showRelations: false };
+
+      current.actors.forEach(id => {
+        if (!prev.actors.includes(id)) newAnimating.add(`actor-${id}`);
+      });
+      current.useCases.forEach(id => {
+        if (!prev.useCases.includes(id)) newAnimating.add(`usecase-${id}`);
+      });
+      if (current.boundary && !prev.boundary) newAnimating.add("boundary");
+      if (current.associations && !prev.associations) newAnimating.add("associations");
+      if (current.showRelations && !prev.showRelations) newAnimating.add("relations");
+    }
+
+    setAnimatingElements(newAnimating);
+    prevStepRef.current = step;
+
+    if (newAnimating.size > 0) {
+      const timer = setTimeout(() => setAnimatingElements(new Set()), 700);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
 
   const isActorVisible = (id: string) => showAll || (visibility?.actors.includes(id) ?? false);
   const isUseCaseVisible = (id: string) => showAll || (visibility?.useCases.includes(id) ?? false);
   const showAssociations = showAll || (visibility?.associations ?? false);
   const showBoundary = showAll || (visibility?.boundary ?? false);
-  const showRelations = showAll || ((visibility as { showRelations?: boolean })?.showRelations ?? false);
-
-  const isNewlyAdded = (type: "actor" | "useCase" | "association" | "boundary" | "relations", id?: string) => {
-    if (!step || step === 1) return false;
-    const prevStep = (step - 1) as keyof typeof stepVisibility;
-    const prev = stepVisibility[prevStep];
-    if (type === "actor" && id) return !prev.actors.includes(id) && visibility?.actors.includes(id);
-    if (type === "useCase" && id) return !prev.useCases.includes(id) && visibility?.useCases.includes(id);
-    if (type === "association") return !prev.associations && visibility?.associations;
-    if (type === "boundary") return !prev.boundary && visibility?.boundary;
-    if (type === "relations") return !(prev as { showRelations?: boolean }).showRelations && (visibility as { showRelations?: boolean })?.showRelations;
-    return false;
-  };
+  const showRelations = showAll || (visibility?.showRelations ?? false);
+  const isAnimating = (key: string) => animatingElements.has(key);
 
   const getScenarioColor = (scenario?: number) => {
     if (scenario === 1) return "#22d3ee";
@@ -101,6 +128,65 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
 
   return (
     <div className="w-full">
+      <style>{`
+        @keyframes actorFadeIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(-15px);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
+        }
+        @keyframes useCasePopIn {
+          0% { 
+            opacity: 0; 
+            transform: scale(0.7);
+          }
+          70% { 
+            transform: scale(1.05);
+          }
+          100% { 
+            opacity: 1; 
+            transform: scale(1);
+          }
+        }
+        @keyframes boundaryDraw {
+          0% { 
+            opacity: 0;
+            stroke-dashoffset: 2000;
+          }
+          100% { 
+            opacity: 1;
+            stroke-dashoffset: 0;
+          }
+        }
+        @keyframes lineDraw {
+          0% { 
+            stroke-dashoffset: 1000;
+            opacity: 0.3;
+          }
+          100% { 
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
+        }
+        .actor-animate {
+          animation: actorFadeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .usecase-animate {
+          animation: useCasePopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .boundary-animate {
+          stroke-dasharray: 2000;
+          animation: boundaryDraw 1s ease-out forwards;
+        }
+        .line-animate { 
+          stroke-dasharray: 1000; 
+          animation: lineDraw 0.6s ease-out forwards; 
+        }
+      `}</style>
       <div className="w-full overflow-x-auto">
         <svg
           viewBox="0 0 800 580"
@@ -114,25 +200,27 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
           </text>
 
           {/* System Boundary */}
-          <g 
-            opacity={showBoundary ? 1 : 0.08}
-            className={isNewlyAdded("boundary") ? "animate-pulse" : "transition-opacity duration-500"}
-          >
-            <rect 
-              x="180" y="50" width="440" height="460" rx="8" 
-              fill="none" 
-              stroke={isNewlyAdded("boundary") ? "#3b82f6" : "#3b82f6"} 
-              strokeWidth={isNewlyAdded("boundary") ? 3 : 2} 
-            />
-            <text x="400" y="75" textAnchor="middle" className="fill-primary text-sm font-semibold">CampusConnect</text>
-          </g>
+          {showBoundary && (
+            <g>
+              <rect 
+                x="180" y="50" width="440" height="460" rx="8" 
+                fill="none" 
+                stroke={isAnimating("boundary") ? "#3b82f6" : "#3b82f6"} 
+                strokeWidth={isAnimating("boundary") ? 3 : 2} 
+                className={isAnimating("boundary") ? "boundary-animate" : ""}
+              />
+              <text x="400" y="75" textAnchor="middle" className="fill-primary text-sm font-semibold">CampusConnect</text>
+            </g>
+          )}
 
           {/* Associations */}
           {associations.map((assoc, index) => {
             const actor = actors.find(a => a.id === assoc.actorId)!;
             const useCase = useCases.find(u => u.id === assoc.useCaseId)!;
             const visible = showAssociations && isActorVisible(assoc.actorId) && isUseCaseVisible(assoc.useCaseId);
-            const isNew = isNewlyAdded("association");
+            const animating = isAnimating("associations");
+
+            if (!visible) return null;
 
             const actorX = actor.x + (actor.isSystem ? -30 : 20);
             const ucX = useCase.x - useCase.rx + 10;
@@ -145,39 +233,51 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                 x2={actor.isSystem ? ucX + 140 : ucX}
                 y2={useCase.y}
                 stroke={actor.color}
-                strokeWidth={isNew ? 2.5 : 1.5}
-                opacity={visible ? 1 : 0.05}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                strokeWidth={animating ? 2.5 : 1.5}
+                className={animating ? "line-animate" : ""}
+                style={{ animationDelay: `${index * 50}ms` }}
               />
             );
           })}
 
           {/* Inheritance line (President extends Student) */}
-          <g opacity={showAssociations ? 1 : 0.08}>
-            <line x1="70" y1="320" x2="70" y2="240" stroke="#71717a" strokeWidth="1.5" />
-            <polygon points="70,240 63,253 77,253" fill="none" stroke="#71717a" strokeWidth="1.5" />
-          </g>
+          {showAssociations && isActorVisible("student") && isActorVisible("president") && (
+            <g>
+              <line 
+                x1="70" y1="320" x2="70" y2="240" 
+                stroke="#71717a" strokeWidth="1.5" 
+                className={isAnimating("associations") ? "line-animate" : ""}
+                style={{ animationDelay: "500ms" }}
+              />
+              <polygon points="70,240 63,253 77,253" fill="none" stroke="#71717a" strokeWidth="1.5" />
+            </g>
+          )}
 
           {/* Include relationship */}
-          <g 
-            opacity={showRelations ? 1 : 0.08}
-            className={isNewlyAdded("relations") ? "animate-pulse" : "transition-opacity duration-500"}
-          >
-            <line x1="375" y1="100" x2="620" y2="100" stroke="#71717a" strokeWidth="1.5" strokeDasharray="4,2" />
-            <text x="500" y="90" textAnchor="middle" className="fill-muted-foreground text-xs">{"<<include>>"}</text>
-          </g>
+          {showRelations && (
+            <g>
+              <line 
+                x1="375" y1="100" x2="620" y2="100" 
+                stroke="#71717a" strokeWidth="1.5" strokeDasharray="4,2" 
+                className={isAnimating("relations") ? "line-animate" : ""}
+              />
+              <text x="500" y="90" textAnchor="middle" className="fill-muted-foreground text-xs">{"<<include>>"}</text>
+            </g>
+          )}
 
           {/* Actors */}
-          {actors.map((actor) => {
+          {actors.map((actor, index) => {
             const visible = isActorVisible(actor.id);
-            const isNew = isNewlyAdded("actor", actor.id);
+            const animating = isAnimating(`actor-${actor.id}`);
+
+            if (!visible) return null;
 
             if (actor.isSystem) {
               return (
                 <g
                   key={actor.id}
-                  opacity={visible ? 1 : 0.08}
-                  className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                  className={animating ? "actor-animate" : ""}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <rect
                     x={actor.x - 40}
@@ -185,10 +285,10 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                     width="80"
                     height="40"
                     rx="4"
-                    fill={isNew ? actor.color : "#1e1e26"}
-                    fillOpacity={isNew ? 0.3 : 1}
+                    fill={animating ? actor.color : "#1e1e26"}
+                    fillOpacity={animating ? 0.2 : 1}
                     stroke={actor.color}
-                    strokeWidth={isNew ? 3 : 2}
+                    strokeWidth={animating ? 3 : 2}
                   />
                   <text x={actor.x} y={actor.y + 5} textAnchor="middle" className="fill-foreground text-xs">{actor.name}</text>
                 </g>
@@ -199,18 +299,18 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
               <g
                 key={actor.id}
                 transform={`translate(${actor.x}, ${actor.y})`}
-                opacity={visible ? 1 : 0.08}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                className={animating ? "actor-animate" : ""}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Stick figure */}
                 <circle
                   cx="0"
                   cy="-20"
                   r="12"
-                  fill={isNew ? actor.color : "none"}
-                  fillOpacity={isNew ? 0.3 : 0}
+                  fill={animating ? actor.color : "none"}
+                  fillOpacity={animating ? 0.2 : 0}
                   stroke={actor.color}
-                  strokeWidth={isNew ? 3 : 2}
+                  strokeWidth={animating ? 3 : 2}
                 />
                 <line x1="0" y1="-8" x2="0" y2="18" stroke={actor.color} strokeWidth="2" />
                 <line x1="-15" y1="0" x2="15" y2="0" stroke={actor.color} strokeWidth="2" />
@@ -222,26 +322,31 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
           })}
 
           {/* Use Cases */}
-          {useCases.map((useCase) => {
+          {useCases.map((useCase, index) => {
             const visible = isUseCaseVisible(useCase.id);
-            const isNew = isNewlyAdded("useCase", useCase.id);
+            const animating = isAnimating(`usecase-${useCase.id}`);
             const color = getScenarioColor(useCase.scenario);
+
+            if (!visible) return null;
 
             return (
               <g
                 key={useCase.id}
-                opacity={visible ? 1 : 0.08}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                className={animating ? "usecase-animate" : ""}
+                style={{ 
+                  animationDelay: `${index * 60}ms`,
+                  transformOrigin: `${useCase.x}px ${useCase.y}px`
+                }}
               >
                 <ellipse
                   cx={useCase.x}
                   cy={useCase.y}
                   rx={useCase.rx}
                   ry="22"
-                  fill={isNew ? color : "#1e1e26"}
-                  fillOpacity={isNew ? 0.2 : 1}
+                  fill={animating ? color : "#1e1e26"}
+                  fillOpacity={animating ? 0.15 : 1}
                   stroke={color}
-                  strokeWidth={isNew ? 3 : 1.5}
+                  strokeWidth={animating ? 3 : 1.5}
                 />
                 <text
                   x={useCase.x}

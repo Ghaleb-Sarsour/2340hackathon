@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 interface SequenceDiagramProps {
-  currentStep: number | null;
+  currentStep?: number | null;
 }
 
 const lifelines = [
@@ -16,12 +18,12 @@ const lifelines = [
 
 // Map building process steps to what elements should be visible
 const stepVisibility = {
-  1: { lifelines: [], messages: [], fragments: false }, // Just identify scenario
-  2: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [], fragments: false }, // Show participants
-  3: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [], fragments: false }, // Lifelines drawn
-  4: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fragments: false }, // Add messages
-  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fragments: false }, // Activation & returns
-  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fragments: true }, // Add loop fragment
+  1: { lifelines: [] as string[], messages: [] as number[], activations: [] as number[], fragments: false },
+  2: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [] as number[], activations: [] as number[], fragments: false },
+  3: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [] as number[], activations: [] as number[], fragments: false },
+  4: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9], fragments: false },
+  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], fragments: false },
+  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], fragments: true },
 };
 
 interface Message {
@@ -50,45 +52,217 @@ const messages: Message[] = [
   { id: 14, from: "student", to: "students", label: "rsvpConfirmed", y: 580, isReturn: true },
 ];
 
+// Activation bars showing when objects are active
+interface ActivationBar {
+  id: number;
+  lifelineId: string;
+  startY: number;
+  endY: number;
+}
+
+const activationBars: ActivationBar[] = [
+  { id: 1, lifelineId: "daniel", startY: 125, endY: 145 },
+  { id: 2, lifelineId: "daniel", startY: 195, endY: 215 },
+  { id: 3, lifelineId: "ui", startY: 125, endY: 175 },
+  { id: 4, lifelineId: "ui", startY: 195, endY: 400 },
+  { id: 5, lifelineId: "controller", startY: 155, endY: 175 },
+  { id: 6, lifelineId: "controller", startY: 230, endY: 395 },
+  { id: 7, lifelineId: "org", startY: 265, endY: 300 },
+  { id: 8, lifelineId: "org", startY: 355, endY: 370 },
+  { id: 9, lifelineId: "event", startY: 325, endY: 345 },
+  { id: 10, lifelineId: "event", startY: 480, endY: 565 },
+  { id: 11, lifelineId: "student", startY: 450, endY: 590 },
+  { id: 12, lifelineId: "students", startY: 450, endY: 465 },
+];
+
 export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
   const step = currentStep as keyof typeof stepVisibility | null;
   const visibility = step ? stepVisibility[step] : null;
   const showAll = visibility === null;
 
-  const getLifelineX = (id: string) => lifelines.find(l => l.id === id)?.x || 0;
+  // Track visible elements
+  const [visibleLifelines, setVisibleLifelines] = useState<Set<string>>(new Set());
+  const [visibleMessages, setVisibleMessages] = useState<Set<number>>(new Set());
+  const [visibleActivations, setVisibleActivations] = useState<Set<number>>(new Set());
+  const [showFragment, setShowFragment] = useState(false);
+  
+  // Track which elements are currently animating (newly added this step)
+  const [animatingLifelines, setAnimatingLifelines] = useState<Set<string>>(new Set());
+  const [animatingMessages, setAnimatingMessages] = useState<Set<number>>(new Set());
+  const [animatingActivations, setAnimatingActivations] = useState<Set<number>>(new Set());
+  const [animatingFragment, setAnimatingFragment] = useState(false);
+  
+  // Track previous step to know what was already visible
+  const prevStepRef = useRef<number | null>(null);
 
-  const isLifelineVisible = (id: string) => {
-    if (showAll) return true;
-    return visibility?.lifelines.includes(id) ?? false;
-  };
+  useEffect(() => {
+    if (showAll) {
+      // Show all immediately without animation
+      setVisibleLifelines(new Set(lifelines.map(l => l.id)));
+      setVisibleMessages(new Set(messages.map(m => m.id)));
+      setVisibleActivations(new Set(activationBars.map(a => a.id)));
+      setShowFragment(true);
+      setAnimatingLifelines(new Set());
+      setAnimatingMessages(new Set());
+      setAnimatingActivations(new Set());
+      setAnimatingFragment(false);
+      prevStepRef.current = null;
+      return;
+    }
 
-  const isMessageVisible = (id: number) => {
-    if (showAll) return true;
-    return visibility?.messages.includes(id) ?? false;
-  };
+    if (!visibility) {
+      // Hide all
+      setVisibleLifelines(new Set());
+      setVisibleMessages(new Set());
+      setVisibleActivations(new Set());
+      setShowFragment(false);
+      setAnimatingLifelines(new Set());
+      setAnimatingMessages(new Set());
+      setAnimatingActivations(new Set());
+      setAnimatingFragment(false);
+      prevStepRef.current = null;
+      return;
+    }
 
-  const showFragments = showAll || (visibility?.fragments ?? false);
-
-  // Highlight newly added elements
-  const isNewlyAdded = (type: "lifeline" | "message" | "fragment", id?: string | number) => {
-    if (!step || step === 1) return false;
-    const prevStep = (step - 1) as keyof typeof stepVisibility;
-    const prevVisibility = stepVisibility[prevStep];
+    const prevStep = prevStepRef.current;
+    const prevVisibility = prevStep ? stepVisibility[prevStep as keyof typeof stepVisibility] : null;
     
-    if (type === "lifeline" && id) {
-      return !prevVisibility.lifelines.includes(id as string) && visibility?.lifelines.includes(id as string);
+    // Determine what's new in this step
+    const prevLifelines = new Set(prevVisibility?.lifelines || []);
+    const prevMessages = new Set(prevVisibility?.messages || []);
+    const prevActivations = new Set(prevVisibility?.activations || []);
+    const prevFragment = prevVisibility?.fragments || false;
+
+    const newLifelines = visibility.lifelines.filter(id => !prevLifelines.has(id));
+    const newMessages = visibility.messages.filter(id => !prevMessages.has(id));
+    const newActivations = visibility.activations.filter(id => !prevActivations.has(id));
+    const newFragment = visibility.fragments && !prevFragment;
+
+    // Immediately show elements from previous steps (no animation)
+    setVisibleLifelines(new Set(prevVisibility?.lifelines || []));
+    setVisibleMessages(new Set(prevVisibility?.messages || []));
+    setVisibleActivations(new Set(prevVisibility?.activations || []));
+    setShowFragment(prevFragment);
+    
+    // Clear animating sets
+    setAnimatingLifelines(new Set());
+    setAnimatingMessages(new Set());
+    setAnimatingActivations(new Set());
+    setAnimatingFragment(false);
+
+    // Animate new lifelines one by one
+    newLifelines.forEach((id, index) => {
+      setTimeout(() => {
+        setAnimatingLifelines(prev => new Set([...prev, id]));
+        setVisibleLifelines(prev => new Set([...prev, id]));
+      }, index * 100);
+    });
+
+    // Remove lifeline animation class after animation completes
+    setTimeout(() => {
+      setAnimatingLifelines(new Set());
+    }, newLifelines.length * 100 + 500);
+
+    // Animate new messages after lifelines
+    const messageDelay = newLifelines.length * 100 + 200;
+    newMessages.forEach((id, index) => {
+      setTimeout(() => {
+        setAnimatingMessages(prev => new Set([...prev, id]));
+        setVisibleMessages(prev => new Set([...prev, id]));
+      }, messageDelay + index * 150);
+    });
+
+    // Remove message animation class after animation completes
+    setTimeout(() => {
+      setAnimatingMessages(new Set());
+    }, messageDelay + newMessages.length * 150 + 600);
+
+    // Animate new activations alongside messages
+    newActivations.forEach((id, index) => {
+      setTimeout(() => {
+        setAnimatingActivations(prev => new Set([...prev, id]));
+        setVisibleActivations(prev => new Set([...prev, id]));
+      }, messageDelay + index * 120);
+    });
+
+    // Remove activation animation class after animation completes
+    setTimeout(() => {
+      setAnimatingActivations(new Set());
+    }, messageDelay + newActivations.length * 120 + 400);
+
+    // Animate fragment if new
+    if (newFragment) {
+      const fragmentDelay = messageDelay + Math.max(newMessages.length * 150, newActivations.length * 120) + 200;
+      setTimeout(() => {
+        setAnimatingFragment(true);
+        setShowFragment(true);
+      }, fragmentDelay);
+      
+      setTimeout(() => {
+        setAnimatingFragment(false);
+      }, fragmentDelay + 500);
     }
-    if (type === "message" && id) {
-      return !prevVisibility.messages.includes(id as number) && visibility?.messages.includes(id as number);
-    }
-    if (type === "fragment") {
-      return !prevVisibility.fragments && visibility?.fragments;
-    }
-    return false;
-  };
+
+    prevStepRef.current = step;
+  }, [step, showAll, visibility]);
+
+  const getLifelineX = (id: string) => lifelines.find(l => l.id === id)?.x || 0;
+  const getLifelineColor = (id: string) => lifelines.find(l => l.id === id)?.color || "#22d3ee";
 
   return (
     <div className="w-full">
+      <style jsx>{`
+        @keyframes fadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-15px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes drawLine {
+          from {
+            stroke-dashoffset: 500;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+        @keyframes growBar {
+          from {
+            transform: scaleY(0);
+            opacity: 0;
+          }
+          to {
+            transform: scaleY(1);
+            opacity: 0.6;
+          }
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fade-slide {
+          animation: fadeSlideIn 0.5s ease-out forwards;
+        }
+        .animate-draw {
+          stroke-dasharray: 500;
+          animation: drawLine 0.6s ease-out forwards;
+        }
+        .animate-grow {
+          transform-origin: top;
+          animation: growBar 0.4s ease-out forwards;
+        }
+        .animate-fade {
+          animation: fadeIn 0.4s ease-out forwards;
+        }
+      `}</style>
       <div className="w-full overflow-x-auto">
         <svg
           viewBox="0 0 900 680"
@@ -103,15 +277,16 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
 
           {/* Lifelines */}
           {lifelines.map((lifeline) => {
-            const visible = isLifelineVisible(lifeline.id);
-            const isNew = isNewlyAdded("lifeline", lifeline.id);
+            const visible = visibleLifelines.has(lifeline.id);
+            const animating = animatingLifelines.has(lifeline.id);
             const boxWidth = lifeline.id === "controller" ? 100 : 70;
+
+            if (!visible) return null;
 
             return (
               <g
                 key={lifeline.id}
-                opacity={visible ? 1 : 0.1}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
+                className={animating ? "animate-fade-slide" : ""}
               >
                 <rect
                   x={lifeline.x - boxWidth / 2}
@@ -119,10 +294,9 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
                   width={boxWidth}
                   height="36"
                   rx="4"
-                  fill={isNew ? lifeline.color : "#1e1e26"}
-                  fillOpacity={isNew ? 0.3 : 1}
+                  fill="#1e1e26"
                   stroke={lifeline.color}
-                  strokeWidth={isNew ? 3 : 2}
+                  strokeWidth="2"
                 />
                 <text
                   x={lifeline.x}
@@ -146,33 +320,57 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
             );
           })}
 
+          {/* Activation Bars */}
+          {activationBars.map((bar) => {
+            const visible = visibleActivations.has(bar.id);
+            const animating = animatingActivations.has(bar.id);
+            const x = getLifelineX(bar.lifelineId);
+            const color = getLifelineColor(bar.lifelineId);
+            const height = bar.endY - bar.startY;
+
+            if (!visible) return null;
+
+            return (
+              <rect
+                key={`activation-${bar.id}`}
+                x={x - 5}
+                y={bar.startY}
+                width={10}
+                height={height}
+                fill={color}
+                opacity={animating ? undefined : 0.6}
+                className={animating ? "animate-grow" : ""}
+              />
+            );
+          })}
+
           {/* Messages */}
           {messages.map((msg) => {
             const fromX = getLifelineX(msg.from);
             const toX = getLifelineX(msg.to);
-            const visible = isMessageVisible(msg.id);
-            const isNew = isNewlyAdded("message", msg.id);
+            const visible = visibleMessages.has(msg.id);
+            const animating = animatingMessages.has(msg.id);
             const isSelfCall = msg.from === msg.to;
 
+            if (!visible) return null;
+
             return (
-              <g
-                key={msg.id}
-                opacity={visible ? 1 : 0.08}
-                className={isNew ? "animate-pulse" : "transition-opacity duration-500"}
-              >
+              <g key={msg.id}>
                 {isSelfCall ? (
                   <>
                     <path
                       d={`M ${fromX + 5} ${msg.y} L ${fromX + 35} ${msg.y} L ${fromX + 35} ${msg.y + 20} L ${fromX + 5} ${msg.y + 20}`}
                       fill="none"
-                      stroke={isNew ? "#22d3ee" : "#e4e4e7"}
-                      strokeWidth={isNew ? 2.5 : 1.5}
+                      stroke="#e4e4e7"
+                      strokeWidth="1.5"
                       markerEnd="url(#arrowhead)"
+                      className={animating ? "animate-draw" : ""}
+                      style={!animating ? { strokeDasharray: "none" } : undefined}
                     />
                     <text
                       x={fromX + 45}
                       y={msg.y + 5}
-                      className={`text-xs ${isNew ? "fill-accent" : "fill-muted-foreground"}`}
+                      className={`text-xs fill-muted-foreground ${animating ? "animate-fade" : ""}`}
                     >
                       {msg.label}
                     </text>
@@ -184,16 +382,17 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
                       y1={msg.y}
                       x2={toX + (fromX < toX ? -5 : 5)}
                       y2={msg.y}
-                      stroke={isNew ? "#22d3ee" : "#e4e4e7"}
-                      strokeWidth={isNew ? 2.5 : 1.5}
-                      strokeDasharray={msg.isReturn ? "4,2" : "none"}
+                      stroke="#e4e4e7"
+                      strokeWidth="1.5"
+                      strokeDasharray={animating ? "500" : (msg.isReturn ? "4,2" : "none")}
                       markerEnd="url(#arrowhead)"
+                      className={animating ? "animate-draw" : ""}
                     />
                     <text
                       x={(fromX + toX) / 2}
                       y={msg.y - 6}
                       textAnchor="middle"
-                      className={`text-xs ${isNew ? "fill-accent" : "fill-muted-foreground"}`}
+                      className={`text-xs fill-muted-foreground ${animating ? "animate-fade" : ""}`}
                     >
                       {msg.label}
                     </text>
@@ -204,26 +403,25 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
           })}
 
           {/* Loop Fragment */}
-          <g 
-            opacity={showFragments ? 1 : 0.08}
-            className={isNewlyAdded("fragment") ? "animate-pulse" : "transition-opacity duration-500"}
-          >
-            <rect 
-              x="35" y="420" width="830" height="190" 
-              fill="none" 
-              stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
-              strokeWidth={isNewlyAdded("fragment") ? 2.5 : 1.5} 
-              rx="4" 
-            />
-            <rect 
-              x="35" y="420" width="60" height="20" 
-              fill="#27272a" 
-              stroke={isNewlyAdded("fragment") ? "#22d3ee" : "#71717a"} 
-              strokeWidth={isNewlyAdded("fragment") ? 2 : 1.5} 
-            />
-            <text x="65" y="434" textAnchor="middle" className="fill-muted-foreground text-xs font-semibold">loop</text>
-            <text x="110" y="434" className="fill-muted-foreground text-xs">[for each student]</text>
-          </g>
+          {showFragment && (
+            <g className={animatingFragment ? "animate-fade" : ""}>
+              <rect 
+                x="35" y="420" width="830" height="190" 
+                fill="none" 
+                stroke="#71717a"
+                strokeWidth="1.5"
+                rx="4" 
+              />
+              <rect 
+                x="35" y="420" width="60" height="20" 
+                fill="#27272a" 
+                stroke="#71717a"
+                strokeWidth="1.5"
+              />
+              <text x="65" y="434" textAnchor="middle" className="fill-muted-foreground text-xs font-semibold">loop</text>
+              <text x="110" y="434" className="fill-muted-foreground text-xs">[for each student]</text>
+            </g>
+          )}
 
           {/* Legend */}
           <g transform="translate(50, 640)">
@@ -231,12 +429,12 @@ export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
             <text x="18" y="10" className="fill-muted-foreground text-xs">Actor</text>
             <rect x="80" y="0" width="12" height="12" fill="#22d3ee" rx="2" />
             <text x="98" y="10" className="fill-muted-foreground text-xs">Object</text>
-            <line x1="160" y1="6" x2="190" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
-            <text x="198" y="10" className="fill-muted-foreground text-xs">Message</text>
-            <line x1="270" y1="6" x2="300" y2="6" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" />
-            <text x="308" y="10" className="fill-muted-foreground text-xs">Return</text>
-            <rect x="370" y="0" width="40" height="12" fill="none" stroke="#71717a" strokeWidth="1" rx="2" />
-            <text x="418" y="10" className="fill-muted-foreground text-xs">Fragment</text>
+            <rect x="160" y="2" width="8" height="10" fill="#22d3ee" opacity="0.6" />
+            <text x="175" y="10" className="fill-muted-foreground text-xs">Activation</text>
+            <line x1="260" y1="6" x2="290" y2="6" stroke="#e4e4e7" strokeWidth="1.5" />
+            <text x="298" y="10" className="fill-muted-foreground text-xs">Message</text>
+            <line x1="370" y1="6" x2="400" y2="6" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4,2" />
+            <text x="408" y="10" className="fill-muted-foreground text-xs">Return</text>
           </g>
 
           <defs>

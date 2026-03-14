@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp, Play, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ interface DiagramLayoutProps {
   purpose: React.ReactNode;
   process: { step: number; title: string; description: string }[];
   connections: { name: string; abbr: string; href: string; description: string }[];
-  diagram: React.ReactElement<{ currentStep: number | null }>;
+  renderDiagram: (currentStep: number | null) => React.ReactNode;
   prevDiagram?: { name: string; href: string };
   nextDiagram?: { name: string; href: string };
 }
@@ -24,15 +24,34 @@ export function DiagramLayout({
   purpose,
   process,
   connections,
-  diagram,
+  renderDiagram,
   prevDiagram,
   nextDiagram,
 }: DiagramLayoutProps) {
   const [activeTab, setActiveTab] = useState<"purpose" | "process" | "connections">("purpose");
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const handleStepClick = (step: number) => {
+    // Stop any playing animation when clicking a step
+    if (isPlaying) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setIsPlaying(false);
+    }
+    
     if (currentStep === step) {
       setCurrentStep(null);
     } else {
@@ -48,10 +67,13 @@ export function DiagramLayout({
     setCurrentStep(1);
     
     let step = 1;
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       step++;
       if (step > process.length) {
-        clearInterval(interval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         setIsPlaying(false);
       } else {
         setCurrentStep(step);
@@ -60,6 +82,10 @@ export function DiagramLayout({
   };
 
   const resetSteps = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setCurrentStep(null);
     setIsPlaying(false);
   };
@@ -265,11 +291,8 @@ export function DiagramLayout({
                 )}
               </div>
               <div className="bg-card border border-border rounded-2xl p-6 overflow-auto">
-                {/* Clone the diagram element and pass currentStep prop */}
-                {typeof diagram.type === 'function' 
-                  ? <diagram.type {...diagram.props} currentStep={currentStep} />
-                  : diagram
-                }
+                {/* Render diagram with currentStep */}
+                {renderDiagram(currentStep)}
               </div>
             </div>
           </div>
