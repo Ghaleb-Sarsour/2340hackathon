@@ -87,7 +87,7 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
     prevStepRef.current = step;
 
     if (newAnimating.size > 0) {
-      const timer = setTimeout(() => setAnimatingElements(new Set()), 600);
+      const timer = setTimeout(() => setAnimatingElements(new Set()), 700);
       return () => clearTimeout(timer);
     }
   }, [step]);
@@ -104,19 +104,33 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
 
   return (
     <div className="w-full">
-      <style jsx>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
+      <style>{`
+        @keyframes conceptFadeIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(-15px) scale(0.95);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0) scale(1);
+          }
         }
-        @keyframes drawLine {
-          from { stroke-dashoffset: 500; opacity: 0; }
-          to { stroke-dashoffset: 0; opacity: 1; }
+        @keyframes lineDraw {
+          0% { 
+            stroke-dashoffset: 1000;
+            opacity: 0.3;
+          }
+          100% { 
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
         }
-        .animate-fade-slide { animation: fadeSlideIn 0.5s ease-out forwards; }
-        .animate-draw-line { 
-          stroke-dasharray: 500; 
-          animation: drawLine 0.6s ease-out forwards; 
+        .concept-animate {
+          animation: conceptFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .line-animate { 
+          stroke-dasharray: 1000; 
+          animation: lineDraw 0.8s ease-out forwards; 
         }
       `}</style>
       <div className="w-full overflow-x-auto">
@@ -132,7 +146,7 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
           </text>
 
           {/* Associations */}
-          {associations.map((assoc) => {
+          {associations.map((assoc, index) => {
             const from = getConceptCenter(assoc.from);
             const to = getConceptCenter(assoc.to);
             const visible = isAssociationVisible(assoc.id);
@@ -145,8 +159,8 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
             return (
               <g
                 key={assoc.id}
-                className={animating ? "animate-draw-line" : ""}
-                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
+                className={animating ? "line-animate" : ""}
+                style={{ animationDelay: `${index * 80}ms` }}
               >
                 <line
                   x1={from.x}
@@ -155,6 +169,8 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
                   y2={to.y}
                   stroke={animating ? "#22d3ee" : "#71717a"}
                   strokeWidth={animating ? 2.5 : 1.5}
+                  className={animating ? "line-animate" : ""}
+                  style={{ animationDelay: `${index * 80}ms` }}
                 />
                 <text
                   x={midX}
@@ -183,7 +199,7 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
           })}
 
           {/* Concepts */}
-          {concepts.map((concept) => {
+          {concepts.map((concept, index) => {
             const visible = isConceptVisible(concept.id);
             const animating = isAnimating(`concept-${concept.id}`);
             const attrHeight = concept.attributes.length * 14 + 8;
@@ -195,15 +211,15 @@ export function DomainModelDiagram({ currentStep }: DomainModelDiagramProps) {
               <g
                 key={concept.id}
                 transform={`translate(${concept.x}, ${concept.y})`}
-                className={animating ? "animate-fade-slide" : ""}
-                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
+                className={animating ? "concept-animate" : ""}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <rect
                   width={concept.width}
                   height={totalHeight}
                   rx="4"
                   fill={animating ? concept.color : "#1e1e26"}
-                  fillOpacity={animating ? 0.2 : 1}
+                  fillOpacity={animating ? 0.15 : 1}
                   stroke={concept.color}
                   strokeWidth={animating ? 3 : 2}
                 />

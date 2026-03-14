@@ -99,7 +99,7 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
     prevStepRef.current = step;
 
     if (newAnimating.size > 0) {
-      const timer = setTimeout(() => setAnimatingElements(new Set()), 600);
+      const timer = setTimeout(() => setAnimatingElements(new Set()), 700);
       return () => clearTimeout(timer);
     }
   }, [step]);
@@ -111,19 +111,46 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
 
   return (
     <div className="w-full">
-      <style jsx>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
+      <style>{`
+        @keyframes classFadeIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(-15px) scale(0.95);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0) scale(1);
+          }
         }
-        @keyframes drawLine {
-          from { stroke-dashoffset: 500; opacity: 0; }
-          to { stroke-dashoffset: 0; opacity: 1; }
+        @keyframes lineDraw {
+          0% { 
+            stroke-dashoffset: 1000;
+            opacity: 0.3;
+          }
+          100% { 
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
         }
-        .animate-fade-slide { animation: fadeSlideIn 0.5s ease-out forwards; }
-        .animate-draw-line { 
-          stroke-dasharray: 500; 
-          animation: drawLine 0.6s ease-out forwards; 
+        @keyframes methodsReveal {
+          0% { 
+            opacity: 0; 
+            transform: translateY(-5px);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
+        }
+        .class-animate {
+          animation: classFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .line-animate { 
+          stroke-dasharray: 1000; 
+          animation: lineDraw 0.8s ease-out forwards; 
+        }
+        .methods-animate {
+          animation: methodsReveal 0.5s ease-out forwards;
         }
       `}</style>
       <div className="w-full overflow-x-auto">
@@ -140,36 +167,33 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
 
           {/* Relationships */}
           {showRelationships && (
-            <g 
-              className={isAnimating("relationships") ? "animate-draw-line" : ""}
-              style={isAnimating("relationships") ? { opacity: 0, animationFillMode: "forwards" } : {}}
-            >
+            <g className={isAnimating("relationships") ? "line-animate" : ""}>
               {/* EventController - Organization */}
-              <line x1="220" y1="110" x2="300" y2="110" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} />
+              <line x1="220" y1="110" x2="300" y2="110" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} className={isAnimating("relationships") ? "line-animate" : ""} />
               <polygon points="300,110 290,105 290,115" fill="#71717a" />
               <text x="260" y="100" textAnchor="middle" className="fill-muted-foreground text-xs">1</text>
 
               {/* Organization - Event */}
-              <line x1="450" y1="110" x2="530" y2="110" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} />
+              <line x1="450" y1="110" x2="530" y2="110" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} className={isAnimating("relationships") ? "line-animate" : ""} style={{ animationDelay: "100ms" }} />
               <polygon points="450,110 460,105 460,115" fill="#71717a" />
               <polygon points="530,110 520,105 520,115" fill="#71717a" />
               <text x="465" y="100" className="fill-muted-foreground text-xs">1</text>
               <text x="515" y="100" className="fill-muted-foreground text-xs">*</text>
 
               {/* Student - RSVP */}
-              <line x1="200" y1="370" x2="300" y2="370" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} />
+              <line x1="200" y1="370" x2="300" y2="370" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} className={isAnimating("relationships") ? "line-animate" : ""} style={{ animationDelay: "200ms" }} />
               <polygon points="300,370 290,365 290,375" fill="#71717a" />
               <text x="215" y="360" className="fill-muted-foreground text-xs">1</text>
               <text x="285" y="360" className="fill-muted-foreground text-xs">*</text>
 
               {/* RSVP - Event */}
-              <line x1="450" y1="370" x2="610" y2="220" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} />
+              <line x1="450" y1="370" x2="610" y2="220" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2.5 : 1.5} className={isAnimating("relationships") ? "line-animate" : ""} style={{ animationDelay: "300ms" }} />
               <polygon points="610,220 600,222 603,232" fill="#71717a" />
               <text x="465" y="360" className="fill-muted-foreground text-xs">*</text>
               <text x="590" y="240" className="fill-muted-foreground text-xs">1</text>
 
               {/* Event - Student (attendees - dashed) */}
-              <path d="M 530 180 Q 400 250 200 300" fill="none" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2 : 1.5} strokeDasharray="4,2" />
+              <path d="M 530 180 Q 400 250 200 300" fill="none" stroke={isAnimating("relationships") ? "#22d3ee" : "#71717a"} strokeWidth={isAnimating("relationships") ? 2 : 1.5} strokeDasharray="4,2" className={isAnimating("relationships") ? "line-animate" : ""} style={{ animationDelay: "400ms" }} />
               <text x="380" y="240" className="fill-accent text-xs">attendees</text>
               <text x="510" y="195" className="fill-muted-foreground text-xs">*</text>
               <text x="215" y="295" className="fill-muted-foreground text-xs">*</text>
@@ -177,7 +201,7 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
           )}
 
           {/* Classes */}
-          {classes.map((cls) => {
+          {classes.map((cls, index) => {
             const visible = isClassVisible(cls.id);
             const animating = isAnimating(`class-${cls.id}`);
             const methodsAnimating = isAnimating("methods");
@@ -193,15 +217,15 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
               <g
                 key={cls.id}
                 transform={`translate(${cls.x}, ${cls.y})`}
-                className={animating ? "animate-fade-slide" : ""}
-                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
+                className={animating ? "class-animate" : ""}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <rect
                   width={cls.width}
                   height={totalHeight}
                   rx="4"
                   fill={animating ? cls.color : "#1e1e26"}
-                  fillOpacity={animating ? 0.2 : 1}
+                  fillOpacity={animating ? 0.15 : 1}
                   stroke={cls.color}
                   strokeWidth={animating ? 3 : 2}
                 />
@@ -236,10 +260,7 @@ export function DomainClassDiagram({ currentStep }: DomainClassDiagramProps) {
 
                 {/* Methods */}
                 {showMethods && (
-                  <g 
-                    className={methodsAnimating ? "animate-fade-slide" : ""}
-                    style={methodsAnimating ? { opacity: 0, animationFillMode: "forwards" } : {}}
-                  >
+                  <g className={methodsAnimating ? "methods-animate" : ""}>
                     <line x1="0" y1={headerHeight + attrHeight} x2={cls.width} y2={headerHeight + attrHeight} stroke={cls.color} strokeWidth="1" />
                     {cls.methods.map((method, i) => (
                       <text

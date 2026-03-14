@@ -107,7 +107,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
     prevStepRef.current = step;
 
     if (newAnimating.size > 0) {
-      const timer = setTimeout(() => setAnimatingElements(new Set()), 600);
+      const timer = setTimeout(() => setAnimatingElements(new Set()), 700);
       return () => clearTimeout(timer);
     }
   }, [step]);
@@ -128,24 +128,63 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
 
   return (
     <div className="w-full">
-      <style jsx>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
+      <style>{`
+        @keyframes actorFadeIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(-15px);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
         }
-        @keyframes scaleIn {
-          from { opacity: 0; transform: scale(0.8); }
-          to { opacity: 1; transform: scale(1); }
+        @keyframes useCasePopIn {
+          0% { 
+            opacity: 0; 
+            transform: scale(0.7);
+          }
+          70% { 
+            transform: scale(1.05);
+          }
+          100% { 
+            opacity: 1; 
+            transform: scale(1);
+          }
         }
-        @keyframes drawLine {
-          from { stroke-dashoffset: 500; opacity: 0; }
-          to { stroke-dashoffset: 0; opacity: 1; }
+        @keyframes boundaryDraw {
+          0% { 
+            opacity: 0;
+            stroke-dashoffset: 2000;
+          }
+          100% { 
+            opacity: 1;
+            stroke-dashoffset: 0;
+          }
         }
-        .animate-fade-slide { animation: fadeSlideIn 0.5s ease-out forwards; }
-        .animate-scale-in { animation: scaleIn 0.4s ease-out forwards; }
-        .animate-draw-line { 
-          stroke-dasharray: 500; 
-          animation: drawLine 0.6s ease-out forwards; 
+        @keyframes lineDraw {
+          0% { 
+            stroke-dashoffset: 1000;
+            opacity: 0.3;
+          }
+          100% { 
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
+        }
+        .actor-animate {
+          animation: actorFadeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .usecase-animate {
+          animation: useCasePopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .boundary-animate {
+          stroke-dasharray: 2000;
+          animation: boundaryDraw 1s ease-out forwards;
+        }
+        .line-animate { 
+          stroke-dasharray: 1000; 
+          animation: lineDraw 0.6s ease-out forwards; 
         }
       `}</style>
       <div className="w-full overflow-x-auto">
@@ -162,15 +201,13 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
 
           {/* System Boundary */}
           {showBoundary && (
-            <g 
-              className={isAnimating("boundary") ? "animate-scale-in" : ""}
-              style={isAnimating("boundary") ? { opacity: 0, transformOrigin: "center", animationFillMode: "forwards" } : {}}
-            >
+            <g>
               <rect 
                 x="180" y="50" width="440" height="460" rx="8" 
                 fill="none" 
                 stroke={isAnimating("boundary") ? "#3b82f6" : "#3b82f6"} 
                 strokeWidth={isAnimating("boundary") ? 3 : 2} 
+                className={isAnimating("boundary") ? "boundary-animate" : ""}
               />
               <text x="400" y="75" textAnchor="middle" className="fill-primary text-sm font-semibold">CampusConnect</text>
             </g>
@@ -197,36 +234,39 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                 y2={useCase.y}
                 stroke={actor.color}
                 strokeWidth={animating ? 2.5 : 1.5}
-                className={animating ? "animate-draw-line" : ""}
-                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
+                className={animating ? "line-animate" : ""}
+                style={{ animationDelay: `${index * 50}ms` }}
               />
             );
           })}
 
           {/* Inheritance line (President extends Student) */}
-          {showAssociations && (
-            <g 
-              className={isAnimating("associations") ? "animate-draw-line" : ""}
-              style={isAnimating("associations") ? { opacity: 0, animationFillMode: "forwards" } : {}}
-            >
-              <line x1="70" y1="320" x2="70" y2="240" stroke="#71717a" strokeWidth="1.5" />
+          {showAssociations && isActorVisible("student") && isActorVisible("president") && (
+            <g>
+              <line 
+                x1="70" y1="320" x2="70" y2="240" 
+                stroke="#71717a" strokeWidth="1.5" 
+                className={isAnimating("associations") ? "line-animate" : ""}
+                style={{ animationDelay: "500ms" }}
+              />
               <polygon points="70,240 63,253 77,253" fill="none" stroke="#71717a" strokeWidth="1.5" />
             </g>
           )}
 
           {/* Include relationship */}
           {showRelations && (
-            <g 
-              className={isAnimating("relations") ? "animate-draw-line" : ""}
-              style={isAnimating("relations") ? { opacity: 0, animationFillMode: "forwards" } : {}}
-            >
-              <line x1="375" y1="100" x2="620" y2="100" stroke="#71717a" strokeWidth="1.5" strokeDasharray="4,2" />
+            <g>
+              <line 
+                x1="375" y1="100" x2="620" y2="100" 
+                stroke="#71717a" strokeWidth="1.5" strokeDasharray="4,2" 
+                className={isAnimating("relations") ? "line-animate" : ""}
+              />
               <text x="500" y="90" textAnchor="middle" className="fill-muted-foreground text-xs">{"<<include>>"}</text>
             </g>
           )}
 
           {/* Actors */}
-          {actors.map((actor) => {
+          {actors.map((actor, index) => {
             const visible = isActorVisible(actor.id);
             const animating = isAnimating(`actor-${actor.id}`);
 
@@ -236,8 +276,8 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
               return (
                 <g
                   key={actor.id}
-                  className={animating ? "animate-fade-slide" : ""}
-                  style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
+                  className={animating ? "actor-animate" : ""}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <rect
                     x={actor.x - 40}
@@ -246,7 +286,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                     height="40"
                     rx="4"
                     fill={animating ? actor.color : "#1e1e26"}
-                    fillOpacity={animating ? 0.3 : 1}
+                    fillOpacity={animating ? 0.2 : 1}
                     stroke={actor.color}
                     strokeWidth={animating ? 3 : 2}
                   />
@@ -259,8 +299,8 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
               <g
                 key={actor.id}
                 transform={`translate(${actor.x}, ${actor.y})`}
-                className={animating ? "animate-fade-slide" : ""}
-                style={animating ? { opacity: 0, animationFillMode: "forwards" } : {}}
+                className={animating ? "actor-animate" : ""}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Stick figure */}
                 <circle
@@ -268,7 +308,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                   cy="-20"
                   r="12"
                   fill={animating ? actor.color : "none"}
-                  fillOpacity={animating ? 0.3 : 0}
+                  fillOpacity={animating ? 0.2 : 0}
                   stroke={actor.color}
                   strokeWidth={animating ? 3 : 2}
                 />
@@ -282,7 +322,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
           })}
 
           {/* Use Cases */}
-          {useCases.map((useCase) => {
+          {useCases.map((useCase, index) => {
             const visible = isUseCaseVisible(useCase.id);
             const animating = isAnimating(`usecase-${useCase.id}`);
             const color = getScenarioColor(useCase.scenario);
@@ -292,8 +332,11 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
             return (
               <g
                 key={useCase.id}
-                className={animating ? "animate-scale-in" : ""}
-                style={animating ? { opacity: 0, transformOrigin: `${useCase.x}px ${useCase.y}px`, animationFillMode: "forwards" } : {}}
+                className={animating ? "usecase-animate" : ""}
+                style={{ 
+                  animationDelay: `${index * 60}ms`,
+                  transformOrigin: `${useCase.x}px ${useCase.y}px`
+                }}
               >
                 <ellipse
                   cx={useCase.x}
@@ -301,7 +344,7 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
                   rx={useCase.rx}
                   ry="22"
                   fill={animating ? color : "#1e1e26"}
-                  fillOpacity={animating ? 0.2 : 1}
+                  fillOpacity={animating ? 0.15 : 1}
                   stroke={color}
                   strokeWidth={animating ? 3 : 1.5}
                 />
