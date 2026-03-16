@@ -26,8 +26,8 @@ const stepVisibility = {
   // Step 4: add primary messages (leave returns/activations for later)
   4: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13], activations: [] as number[], fragments: false },
   // Step 5: add returns + activation bars
-  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], fragments: false },
-  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], fragments: true },
+  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], fragments: false },
+  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], fragments: true },
 };
 
 interface Message {
@@ -65,8 +65,6 @@ interface ActivationBar {
 }
 
 const activationBars: ActivationBar[] = [
-  { id: 1, lifelineId: "daniel", startY: 125, endY: 145 },
-  { id: 2, lifelineId: "daniel", startY: 195, endY: 215 },
   { id: 3, lifelineId: "ui", startY: 125, endY: 175 },
   { id: 4, lifelineId: "ui", startY: 195, endY: 400 },
   { id: 5, lifelineId: "controller", startY: 155, endY: 175 },

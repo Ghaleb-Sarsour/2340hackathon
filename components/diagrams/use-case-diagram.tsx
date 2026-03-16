@@ -321,15 +321,18 @@ export function UseCaseDiagram({ currentStep }: UseCaseDiagramProps) {
 
             if (!visible) return null;
 
-            const actorX = actor.x + (actor.isSystem ? -30 : 20);
-            const ucX = useCase.x - useCase.rx + 10;
+            const isActorOnLeft = actor.x < useCase.x;
+            const actorEdgeOffset = actor.isSystem ? 40 : 20; // system actor is a rectangle, others are stick figures
+
+            const x1 = actor.x + (isActorOnLeft ? actorEdgeOffset : -actorEdgeOffset);
+            const x2 = useCase.x + (isActorOnLeft ? -useCase.rx : useCase.rx);
 
             return (
               <line
                 key={index}
-                x1={actorX}
+                x1={x1}
                 y1={actor.y}
-                x2={actor.isSystem ? ucX + 140 : ucX}
+                x2={x2}
                 y2={useCase.y}
                 stroke={actor.color}
                 strokeWidth="1.5"
