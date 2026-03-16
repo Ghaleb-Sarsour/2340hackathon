@@ -1,7 +1,61 @@
 "use client";
 
 import { DiagramLayout } from "@/components/diagram-layout";
+import { DiagramQuiz, type QuizQuestion } from "@/components/diagram-quiz";
 import { UseCaseDiagram } from "@/components/diagrams/use-case-diagram";
+
+const quizQuestions: QuizQuestion[] = [
+  {
+    id: "ucd-1",
+    question: "In a Use Case Diagram, a use case is typically drawn as:",
+    options: ["A rectangle", "An oval", "A stick figure", "A dashed line"],
+    correctIndex: 1,
+    explanation: "Use cases are shown as ovals containing goal-oriented verb phrases.",
+  },
+  {
+    id: "ucd-2",
+    question: "Actors in a Use Case Diagram represent:",
+    options: [
+      "Internal objects collaborating in code",
+      "External roles or systems that interact with the system",
+      "Database entities",
+      "Classes with attributes and methods",
+    ],
+    correctIndex: 1,
+    explanation: "Actors are outside the system boundary and represent external users/roles or external systems.",
+  },
+  {
+    id: "ucd-3",
+    question: "The system boundary rectangle is used to show:",
+    options: ["The UI layout", "The scope of the system", "The database schema", "The message order"],
+    correctIndex: 1,
+    explanation: "The boundary clarifies what is inside the system (use cases) vs. external (actors).",
+  },
+  {
+    id: "ucd-4",
+    question: "When should you use an «include» relationship?",
+    options: [
+      "To model optional behavior that happens only sometimes",
+      "To factor out required, shared behavior reused by multiple use cases",
+      "To show which actor starts the use case",
+      "To show inheritance between actors",
+    ],
+    correctIndex: 1,
+    explanation: "«include» captures required shared sub-flows; the dashed arrow points from the base use case to the included use case.",
+  },
+  {
+    id: "ucd-5",
+    question: "An «extend» relationship is best used for:",
+    options: [
+      "Optional or conditional behavior that augments a base use case",
+      "Required behavior that always runs",
+      "System events between actor and system",
+      "Attributes on conceptual classes",
+    ],
+    correctIndex: 0,
+    explanation: "«extend» represents optional/conditional behavior; the extending use case points to the base use case.",
+  },
+];
 
 export function UseCaseContent() {
   return (
@@ -89,6 +143,7 @@ export function UseCaseContent() {
       ]}
       renderDiagram={(currentStep) => <UseCaseDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "Domain Class Diagram", href: "/diagrams/domain-class" }}
+      quiz={<DiagramQuiz title="Use Case Diagram Quiz" questions={quizQuestions} />}
     />
   );
 }

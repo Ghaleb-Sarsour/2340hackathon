@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Lightbulb, ListChecks, Link2, ChevronDown, ChevronUp, Play, RotateCcw, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DiagramLayoutProps {
@@ -15,6 +15,7 @@ interface DiagramLayoutProps {
   renderDiagram: (currentStep: number | null) => React.ReactNode;
   prevDiagram?: { name: string; href: string };
   nextDiagram?: { name: string; href: string };
+  quiz?: React.ReactNode;
 }
 
 export function DiagramLayout({
@@ -27,8 +28,9 @@ export function DiagramLayout({
   renderDiagram,
   prevDiagram,
   nextDiagram,
+  quiz,
 }: DiagramLayoutProps) {
-  const [activeTab, setActiveTab] = useState<"purpose" | "process" | "connections">("purpose");
+  const [activeTab, setActiveTab] = useState<"purpose" | "process" | "connections" | "quiz">("purpose");
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -90,6 +92,13 @@ export function DiagramLayout({
     setIsPlaying(false);
   };
 
+  const tabs = [
+    { id: "purpose" as const, label: "Purpose", icon: Lightbulb },
+    { id: "process" as const, label: "Process", icon: ListChecks },
+    { id: "connections" as const, label: "Links", icon: Link2 },
+    ...(quiz ? [{ id: "quiz" as const, label: "Quiz", icon: HelpCircle }] : []),
+  ];
+
   return (
     <div className="min-h-screen pb-16">
       {/* Header */}
@@ -123,11 +132,7 @@ export function DiagramLayout({
           <div className="lg:col-span-2 space-y-6">
             {/* Tabs */}
             <div className="flex gap-1 p-1 bg-muted rounded-xl">
-              {[
-                { id: "purpose", label: "Purpose", icon: Lightbulb },
-                { id: "process", label: "Process", icon: ListChecks },
-                { id: "connections", label: "Links", icon: Link2 },
-              ].map((tab) => (
+              {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
@@ -273,6 +278,8 @@ export function DiagramLayout({
                   </div>
                 </div>
               )}
+
+              {activeTab === "quiz" && quiz}
             </div>
           </div>
 

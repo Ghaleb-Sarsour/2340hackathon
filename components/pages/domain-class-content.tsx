@@ -1,7 +1,56 @@
 "use client";
 
 import { DiagramLayout } from "@/components/diagram-layout";
+import { DiagramQuiz, type QuizQuestion } from "@/components/diagram-quiz";
 import { DomainClassDiagram } from "@/components/diagrams/domain-class-diagram";
+
+const quizQuestions: QuizQuestion[] = [
+  {
+    id: "dcd-1",
+    question: "Compared to a Domain Model, a Domain Class Diagram primarily adds:",
+    options: [
+      "Methods, visibility, and types suitable for implementation",
+      "Only nouns from requirements (no attributes)",
+      "Only actors and use cases",
+      "Only system events between actor and system",
+    ],
+    correctIndex: 0,
+    explanation: "A DCD is a design artifact: it includes typed attributes, methods, and visibility to support implementation.",
+  },
+  {
+    id: "dcd-2",
+    question: "Which visibility symbol indicates a public member in UML?",
+    options: ["+", "-", "#", "~"],
+    correctIndex: 0,
+    explanation: "+ is public, - is private, # is protected, and ~ is package/internal (depending on notation).",
+  },
+  {
+    id: "dcd-3",
+    question: "A reliable source for candidate methods in a DCD is:",
+    options: ["The UI mockups", "Messages in sequence diagrams", "Database schema", "Deployment diagrams"],
+    correctIndex: 1,
+    explanation: "Messages in sequence diagrams often map directly to operations on the receiving classes.",
+  },
+  {
+    id: "dcd-4",
+    question: "Which relationship best represents strong ownership/lifecycle dependency?",
+    options: ["Association", "Aggregation", "Composition", "Dependency"],
+    correctIndex: 2,
+    explanation: "Composition (filled diamond) implies the part’s lifecycle is owned by the whole.",
+  },
+  {
+    id: "dcd-5",
+    question: "Navigability arrows in a DCD indicate:",
+    options: [
+      "The order messages are sent in time",
+      "Which class holds a reference/needs to know about the other",
+      "Which use case is optional",
+      "Which actor can initiate the use case",
+    ],
+    correctIndex: 1,
+    explanation: "Navigability clarifies reference direction to reduce unnecessary coupling.",
+  },
+];
 
 export function DomainClassContent() {
   return (
@@ -90,6 +139,7 @@ export function DomainClassContent() {
       renderDiagram={(currentStep) => <DomainClassDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "Domain Model", href: "/diagrams/domain-model" }}
       nextDiagram={{ name: "Use Case Diagram", href: "/diagrams/use-case" }}
+      quiz={<DiagramQuiz title="Domain Class Diagram Quiz" questions={quizQuestions} />}
     />
   );
 }

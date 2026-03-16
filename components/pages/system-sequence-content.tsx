@@ -1,7 +1,46 @@
 "use client";
 
 import { DiagramLayout } from "@/components/diagram-layout";
+import { DiagramQuiz, type QuizQuestion } from "@/components/diagram-quiz";
 import { SystemSequenceDiagram } from "@/components/diagrams/system-sequence-diagram";
+
+const quizQuestions: QuizQuestion[] = [
+  {
+    id: "ssd-1",
+    question: "A System Sequence Diagram (SSD) treats the system as:",
+    options: ["A collection of collaborating internal objects", "A black box with a single system lifeline", "A database schema", "A set of use cases only"],
+    correctIndex: 1,
+    explanation: "SSDs model actor-to-system interaction while hiding internal design details.",
+  },
+  {
+    id: "ssd-2",
+    question: "An SSD typically shows how many primary lifelines?",
+    options: ["One (system only)", "Two (actor and system)", "Three (actor, UI, controller)", "Many (all domain entities)"],
+    correctIndex: 1,
+    explanation: "The basic SSD has the actor and a single system lifeline (e.g., :CampusConnect).",
+  },
+  {
+    id: "ssd-3",
+    question: "Messages in an SSD represent:",
+    options: ["Private method calls between classes", "System events/operations requested by the actor", "Class attributes", "Actor generalization"],
+    correctIndex: 1,
+    explanation: "Each message is a system operation such as login(credentials) or viewUpcomingEvents().",
+  },
+  {
+    id: "ssd-4",
+    question: "Should an SSD show internal objects like controllers and entities?",
+    options: ["Yes, always", "Only when using alt fragments", "No, internal collaboration belongs in a detailed sequence diagram", "Only for database calls"],
+    correctIndex: 2,
+    explanation: "SSDs stay at the system boundary; internal object interactions are modeled in sequence diagrams.",
+  },
+  {
+    id: "ssd-5",
+    question: "Which combined fragment is used to show optional behavior?",
+    options: ["loop", "alt", "opt", "ref"],
+    correctIndex: 2,
+    explanation: "opt denotes optional behavior that happens only if the guard condition holds.",
+  },
+];
 
 export function SystemSequenceContent() {
   return (
@@ -90,6 +129,7 @@ export function SystemSequenceContent() {
       renderDiagram={(currentStep) => <SystemSequenceDiagram currentStep={currentStep} />}
       prevDiagram={{ name: "Sequence Diagram", href: "/diagrams/sequence" }}
       nextDiagram={{ name: "Domain Model", href: "/diagrams/domain-model" }}
+      quiz={<DiagramQuiz title="System Sequence Diagram Quiz" questions={quizQuestions} />}
     />
   );
 }

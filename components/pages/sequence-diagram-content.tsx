@@ -1,7 +1,46 @@
 "use client";
 
 import { DiagramLayout } from "@/components/diagram-layout";
+import { DiagramQuiz, type QuizQuestion } from "@/components/diagram-quiz";
 import { SequenceDiagram } from "@/components/diagrams/sequence-diagram";
+
+const quizQuestions: QuizQuestion[] = [
+  {
+    id: "sd-1",
+    question: "In a sequence diagram, lifelines are shown as:",
+    options: ["Horizontal dashed lines", "Vertical dashed lines under participants", "Rectangles around the whole system", "Arrows between use cases"],
+    correctIndex: 1,
+    explanation: "Each participant has a vertical dashed lifeline that time progresses along.",
+  },
+  {
+    id: "sd-2",
+    question: "Time in a sequence diagram generally flows:",
+    options: ["Left to right", "Right to left", "Top to bottom", "Bottom to top"],
+    correctIndex: 2,
+    explanation: "Messages are ordered from top to bottom to represent time progression.",
+  },
+  {
+    id: "sd-3",
+    question: "Which combined fragment is used to model repetition?",
+    options: ["loop", "alt", "opt", "break"],
+    correctIndex: 0,
+    explanation: "loop indicates repeated interaction for a set of iterations or a condition.",
+  },
+  {
+    id: "sd-4",
+    question: "Activation bars represent:",
+    options: ["Database transactions", "When an object is executing after receiving a message", "Actor inheritance", "Optional use cases"],
+    correctIndex: 1,
+    explanation: "An activation bar shows the period during which an object is active/executing.",
+  },
+  {
+    id: "sd-5",
+    question: "Return messages are commonly drawn as:",
+    options: ["Solid arrows", "Dashed arrows", "Diamonds", "Ovals"],
+    correctIndex: 1,
+    explanation: "Returns are often shown with dashed arrows to distinguish them from call messages.",
+  },
+];
 
 export function SequenceDiagramContent() {
   return (
@@ -90,6 +129,7 @@ export function SequenceDiagramContent() {
       ]}
       renderDiagram={(currentStep) => <SequenceDiagram currentStep={currentStep} />}
       nextDiagram={{ name: "System Sequence Diagram", href: "/diagrams/system-sequence" }}
+      quiz={<DiagramQuiz title="Sequence Diagram Quiz" questions={quizQuestions} />}
     />
   );
 }
