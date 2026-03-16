@@ -26,8 +26,8 @@ const stepVisibility = {
   // Step 4: add primary messages (leave returns/activations for later)
   4: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13], activations: [] as number[], fragments: false },
   // Step 5: add returns + activation bars
-  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], fragments: false },
-  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], fragments: true },
+  5: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], fragments: false },
+  6: { lifelines: ["daniel", "ui", "controller", "org", "event", "student", "students"], messages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], activations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], fragments: true },
 };
 
 interface Message {
@@ -77,6 +77,7 @@ const activationBars: ActivationBar[] = [
   { id: 10, lifelineId: "event", startY: 480, endY: 565 },
   { id: 11, lifelineId: "student", startY: 450, endY: 590 },
   { id: 12, lifelineId: "students", startY: 450, endY: 465 },
+  { id: 13, lifelineId: "students", startY: 575, endY: 590 },
 ];
 
 export function SequenceDiagram({ currentStep }: SequenceDiagramProps) {
