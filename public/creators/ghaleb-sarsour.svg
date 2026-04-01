@@ -1,0 +1,21 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="48" y1="32" x2="360" y2="392" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#D946EF" stop-opacity="0.18" />
+    </linearGradient>
+    <linearGradient id="ring" x1="120" y1="120" x2="280" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6" />
+      <stop offset="1" stop-color="#D946EF" />
+    </linearGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="399" height="399" rx="40" fill="#131318" stroke="#27272A" />
+  <rect x="0.5" y="0.5" width="399" height="399" rx="40" fill="url(#bg)" />
+  <circle cx="200" cy="168" r="94" fill="#0A0A0F" fill-opacity="0.6" stroke="url(#ring)" stroke-width="2" />
+  <text x="200" y="200" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="86" font-weight="700" fill="#E4E4E7">
+    GS
+  </text>
+  <text x="200" y="308" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="600" fill="#A1A1AA">
+    Ghaleb Sarsour
+  </text>
+</svg>

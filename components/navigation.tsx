@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, BookOpen, GitBranch } from "lucide-react";
+import { Menu, X, BookOpen, GitBranch, Info } from "lucide-react";
 
 const diagrams = [
   { name: "Sequence Diagram", href: "/diagrams/sequence", abbr: "SD" },
@@ -89,6 +89,19 @@ export function Navigation() {
           >
             Connections
           </Link>
+
+          <Link
+            href="/about"
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2",
+              pathname === "/about"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+            )}
+          >
+            <Info className="h-4 w-4" />
+            About
+          </Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -148,6 +161,20 @@ export function Navigation() {
             )}
           >
             Connections
+          </Link>
+
+          <Link
+            href="/about"
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+              pathname === "/about"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+            )}
+          >
+            <Info className="h-4 w-4" />
+            About
           </Link>
         </div>
       )}
