@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { ExternalLink, GraduationCap, MapPin } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -10,37 +9,64 @@ export const metadata: Metadata = {
 const creators = [
   {
     name: "Neil Lothe",
+    initials: "NL",
     major: "Computer Science",
     linkedin: "https://www.linkedin.com/in/neil-lothe-b9a867360/",
-    imageSrc: "/creators/neil-lothe.svg",
-    imageAlt: "Portrait placeholder for Neil Lothe",
     accent: "from-blue-500/20 to-cyan-500/10",
   },
   {
     name: "Levin Patel",
+    initials: "LP",
     major: "Computer Engineering",
     linkedin: "https://www.linkedin.com/in/levin-patel-493a37313/",
-    imageSrc: "/creators/levin-patel.svg",
-    imageAlt: "Portrait placeholder for Levin Patel",
     accent: "from-emerald-500/20 to-lime-500/10",
   },
   {
     name: "Ghaleb Sarsour",
+    initials: "GS",
     major: "Computer Science",
     linkedin: "https://www.linkedin.com/in/gsars/",
-    imageSrc: "/creators/ghaleb-sarsour.svg",
-    imageAlt: "Portrait placeholder for Ghaleb Sarsour",
     accent: "from-violet-500/20 to-fuchsia-500/10",
   },
   {
     name: "Matas Gatautis",
+    initials: "MG",
     major: "Computational Media",
     linkedin: "https://www.linkedin.com/in/matas-gatautis-2a4bb12b9/",
-    imageSrc: "/creators/matas-gatautis.svg",
-    imageAlt: "Portrait placeholder for Matas Gatautis",
     accent: "from-amber-500/20 to-orange-500/10",
   },
 ];
+
+function InitialAvatar({ initials }: { initials: string }) {
+  return (
+    <svg viewBox="0 0 112 112" className="h-full w-full">
+      <defs>
+        <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(40 34) rotate(55) scale(90)">
+          <stop stopColor="currentColor" stopOpacity="0.24" />
+          <stop offset="0.65" stopColor="#FFFFFF" stopOpacity="0.06" />
+          <stop offset="1" stopColor="#0A0A0F" stopOpacity="0.10" />
+        </radialGradient>
+        <linearGradient id="ring" x1="20" y1="20" x2="92" y2="92" gradientUnits="userSpaceOnUse">
+          <stop stopColor="currentColor" stopOpacity="0.9" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      <circle cx="56" cy="56" r="44" fill="url(#bg)" stroke="url(#ring)" strokeWidth="2" />
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dy="0.35em"
+        fontFamily='Inter, system-ui, sans-serif'
+        fontSize="44"
+        fontWeight="700"
+        fill="rgb(228, 228, 231)"
+      >
+        {initials}
+      </text>
+    </svg>
+  );
+}
 
 export default function AboutPage() {
   return (
@@ -83,16 +109,8 @@ export default function AboutPage() {
 
               <div className="relative">
                 <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 overflow-hidden rounded-xl border border-border bg-secondary/40">
-                    <Image
-                      src={creator.imageSrc}
-                      alt={creator.imageAlt}
-                      width={56}
-                      height={56}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                      priority={false}
-                    />
+                  <div className="h-14 w-14 overflow-hidden rounded-xl border border-border bg-secondary/40 text-primary">
+                    <InitialAvatar initials={creator.initials} />
                   </div>
 
                   <div className="min-w-0">
