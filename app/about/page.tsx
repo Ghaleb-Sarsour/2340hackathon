@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { ExternalLink, GraduationCap, MapPin } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -83,11 +84,14 @@ export default function AboutPage() {
               <div className="relative">
                 <div className="flex items-center gap-4">
                   <div className="h-14 w-14 overflow-hidden rounded-xl border border-border bg-secondary/40">
-                    <img
+                    <Image
                       src={creator.imageSrc}
                       alt={creator.imageAlt}
+                      width={56}
+                      height={56}
+                      unoptimized
                       className="h-full w-full object-cover"
-                      loading="lazy"
+                      priority={false}
                     />
                   </div>
 
@@ -119,4 +123,3 @@ export default function AboutPage() {
     </div>
   );
 }
-
